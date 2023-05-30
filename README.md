@@ -1,8 +1,8 @@
 # Arena by GASM
 SoftDev  
 P05 -- Arena  
-started: 2023-05-30  
-completed: 
+Started: 2023-05-30  
+Completed: 
 
 ## Roster and Roles
 
