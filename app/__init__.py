@@ -32,7 +32,6 @@ def update_players(players, data):
 def pop_player(players, id):
     for i in range(len(players)):
         if players[i]["id"] == id:
-            print(players[i]["name"], "left")
             players.pop(i)
             break
     

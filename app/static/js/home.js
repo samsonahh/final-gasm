@@ -1,17 +1,29 @@
-const c = document.getElementById("canvas");
-const ctx = c.getContext("2d");
-
-ctx.canvas.width = window.innerWidth;
-ctx.canvas.height = window.innerHeight;
-
 const WORLDWIDTH = 500;
 const WORLDHEIGHT = 500;
 
+var MAINPLAYER;
+var NAME;
+var ID;
+var PLAYING = false;
+var PLAYERS = [];
+
 const websocket = new WebSocket("ws://localhost:8001/");
 
-window.addEventListener("DOMContentLoaded", ()=>{
-    update();
+const c = document.getElementById("canvas");
+const ctx = c.getContext("2d");
+
+const menu = document.getElementById("menu");
+const play_button = document.getElementById("play");
+const name_input = document.getElementById("name");
+
+play_button.addEventListener("click", (e)=>{
+    NAME = name_input.value;
+    menu.style.display = "none";
+    start();
 })
+
+ctx.canvas.width = window.innerWidth;
+ctx.canvas.height = window.innerHeight;
 
 window.addEventListener("resize", ()=>{
     ctx.canvas.width = window.innerWidth;
@@ -23,16 +35,24 @@ class Player{
     worldY;
     screenX;
     screenY;
-
-    constructor(wx, wy){
+    name;
+    
+    constructor(wx, wy, n){
         this.worldX = wx;
         this.worldY = wy;
+        this.name = n;
     }
-
+    
     display(){
-        this.screenX = this.worldX + MAINPLAYER.screenX - MAINPLAYER.worldX;
-        this.screenY = this.worldY + MAINPLAYER.screenY - MAINPLAYER.worldY;
-        draw_circle(this.screenX, this.screenY, 30, "red");
+        if(PLAYING){
+            this.screenX = this.worldX + MAINPLAYER.screenX - MAINPLAYER.worldX;
+            this.screenY = this.worldY + MAINPLAYER.screenY - MAINPLAYER.worldY;
+        }
+        else{
+            this.screenX = this.worldX + ctx.canvas.width/2 - WORLDWIDTH/2;
+            this.screenY = this.worldY + ctx.canvas.height/2 - WORLDHEIGHT/2;
+        }
+        draw_circle_text(this.screenX, this.screenY, 30, "red", this.name);
     }
 }
 
@@ -41,19 +61,19 @@ class MainPlayer extends Player{
     down = false;
     left = false;
     right = false;
-
-    constructor(wx, wy){
-        super(wx, wy);
+    
+    constructor(wx, wy, n){
+        super(wx, wy, n);
         this.screenX = ctx.canvas.width/2;
         this.screenY = ctx.canvas.height/2;
     }
-
+    
     display(){
         this.screenX = ctx.canvas.width/2;
         this.screenY = ctx.canvas.height/2;
-        draw_circle(this.screenX, this.screenY, 30, "red");
+        draw_circle_text(this.screenX, this.screenY, 30, "red", this.name);
     }
-
+    
     handle_movement(){
         if(this.up) this.worldY -= 2;
         if(this.down) this.worldY += 2;
@@ -62,47 +82,100 @@ class MainPlayer extends Player{
     }
 }
 
-const MAINPLAYER = new MainPlayer(WORLDWIDTH/2, WORLDHEIGHT/2);
-var PLAYERS = [];
-
-var local_data = {
-    "id": 0,
-    name: "MAIN",
-    x: MAINPLAYER.worldX,
-    y: MAINPLAYER.worldY
+function sendLocalData(data){
+    websocket.send(JSON.stringify(data));
 }
 
-window.addEventListener("keydown", (e)=>{
-    if(e.code == "KeyW"){
-        MAINPLAYER.up = true;
+websocket.addEventListener("message", ({data}) => {
+    d = JSON.parse(data);
+    if(d.hasOwnProperty("id")){
+        console.log("CONNECTED");
+        ID = d.id;
+        update();
     }
-    if(e.code == "KeyS"){
-        MAINPLAYER.down = true;
-    }
-    if(e.code == "KeyA"){
-        MAINPLAYER.left = true;
-    }
-    if(e.code == "KeyD"){
-        MAINPLAYER.right = true;
-    }
-    // console.log("SCREEN", MAINPLAYER.screenX, MAINPLAYER.screenY, "WORLD", MAINPLAYER.worldX, MAINPLAYER.worldY);
+    PLAYERS = d;
+    console.log(PLAYERS);
 })
 
-window.addEventListener("keyup", (e)=>{
-    if(e.code == "KeyW"){
-        MAINPLAYER.up = false;
+function start(){
+    MAINPLAYER = new MainPlayer(WORLDWIDTH/2, WORLDWIDTH/2, NAME);
+    PLAYING = true;
+    window.addEventListener("keydown", (e)=>{
+        if(e.code == "KeyW"){
+            MAINPLAYER.up = true;
+        }
+        if(e.code == "KeyS"){
+            MAINPLAYER.down = true;
+        }
+        if(e.code == "KeyA"){
+            MAINPLAYER.left = true;
+        }
+        if(e.code == "KeyD"){
+            MAINPLAYER.right = true;
+        }
+    })
+    
+    window.addEventListener("keyup", (e)=>{
+        if(e.code == "KeyW"){
+            MAINPLAYER.up = false;
+        }
+        if(e.code == "KeyS"){
+            MAINPLAYER.down = false;
+        }
+        if(e.code == "KeyA"){
+            MAINPLAYER.left = false;
+        }
+        if(e.code == "KeyD"){
+            MAINPLAYER.right = false;
+        }
+    })
+}
+
+function update(){
+    requestAnimationFrame(update);
+
+    draw_background();
+    if(PLAYING){
+        MAINPLAYER.display();
+        MAINPLAYER.handle_movement();
     }
-    if(e.code == "KeyS"){
-        MAINPLAYER.down = false;
+
+    for(let i = 0; i < PLAYERS.length; i++){
+        if(PLAYERS[i].id != local_data.id){
+            p = new Player(PLAYERS[i].x, PLAYERS[i].y, PLAYERS[i].name);
+            p.display();
+        }
     }
-    if(e.code == "KeyA"){
-        MAINPLAYER.left = false;
+
+    if(websocket.readyState == WebSocket.OPEN){
+        if(PLAYING){
+            local_data = {
+                id: ID,
+                name: NAME,
+                x: MAINPLAYER.worldX,
+                y: MAINPLAYER.worldY,
+                playing: PLAYING
+            };
+        }
+        else{
+            local_data = {
+                id: ID
+            }
+        }
+        sendLocalData(local_data);
     }
-    if(e.code == "KeyD"){
-        MAINPLAYER.right = false;
-    }
-    // console.log("WORLD", MAINPLAYER.worldX, MAINPLAYER.worldY);
-})
+}
+
+
+
+
+
+
+
+
+
+
+
 
 function draw_line(x0, y0, x1, y1, color){
     ctx.beginPath();
@@ -126,6 +199,15 @@ function draw_circle(x, y, radius, color){
     ctx.fill();
 }
 
+function draw_circle_text(x, y, radius, color, name){
+    draw_circle(x, y, radius, color);
+    ctx.fillStyle = "black";
+    ctx.font = "bold 18px Helvetica";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(name, x, y);
+}
+
 function clear(){
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 }
@@ -133,8 +215,14 @@ function clear(){
 function draw_background(){
     clear();
 
-    var sX = 0 - MAINPLAYER.worldX + MAINPLAYER.screenX;
-    var sY = 0 - MAINPLAYER.worldY + MAINPLAYER.screenY; 
+    if(PLAYING){
+        var sX = 0 - MAINPLAYER.worldX + MAINPLAYER.screenX;
+        var sY = 0 - MAINPLAYER.worldY + MAINPLAYER.screenY; 
+    }
+    else{
+        var sX = 0 - WORLDWIDTH/2 + ctx.canvas.width/2;
+        var sY = 0 - WORLDHEIGHT/2 + ctx.canvas.height/2; 
+    }
     draw_rect(sX, sY, WORLDWIDTH, WORLDHEIGHT, "black");
 
     for(let i = 0; i < WORLDWIDTH; i += 25){
@@ -142,44 +230,5 @@ function draw_background(){
             draw_line(i + sX, sY, i + sX, sY + WORLDHEIGHT, "gray");
             draw_line(sX, j + sY, sX + WORLDWIDTH, j + sY, "gray");
         }
-    }
-}
-
-function sendLocalData(data){
-    websocket.send(JSON.stringify(data));
-}
-
-websocket.addEventListener("message", ({data}) => {
-    d = JSON.parse(data)
-    if(d.hasOwnProperty("id")){
-        local_data.id = d.id;
-    }
-    PLAYERS = d;
-    console.log(PLAYERS);
-})
-
-function start(){
-
-}
-
-function update(){
-    requestAnimationFrame(update);
-
-    draw_background();
-    MAINPLAYER.display();
-    MAINPLAYER.handle_movement();
-
-    for(let i = 0; i < PLAYERS.length; i++){
-        if(PLAYERS[i].id != local_data.id){
-            p = new Player(PLAYERS[i].x, PLAYERS[i].y);
-            p.display();
-        }
-    }
-
-    local_data.x = MAINPLAYER.worldX;
-    local_data.y = MAINPLAYER.worldY;
-
-    if(websocket.readyState == WebSocket.OPEN){
-        sendLocalData(local_data);
     }
 }
