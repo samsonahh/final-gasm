@@ -1,6 +1,15 @@
 const c = document.getElementById("canvas");
 const ctx = c.getContext("2d");
 
+ctx.canvas.width = window.innerWidth;
+ctx.canvas.height = window.innerHeight;
+
+window.addEventListener("resize", ()=>{
+    ctx.canvas.width = window.innerWidth;
+    ctx.canvas.height = window.innerHeight;
+    // console.log("CANVAS RESIZED", ctx.canvas.width, ctx.canvas.height);
+})
+
 const WORLDWIDTH = 500;
 const WORLDHEIGHT = 500;
 
@@ -25,42 +34,33 @@ class Player{
 class MainPlayer extends Player{
     constructor(wx, wy){
         super(wx, wy);
-        this.screenX = WORLDWIDTH/2;
-        this.screenY = WORLDHEIGHT/2;
+        this.screenX = ctx.canvas.width/2;
+        this.screenY = ctx.canvas.height/2;
     }
 
     display(){
+        this.screenX = ctx.canvas.width/2;
+        this.screenY = ctx.canvas.height/2;
         draw_circle(this.screenX, this.screenY, 30, "red");
     }
 }
 
 const MAINPLAYER = new MainPlayer(WORLDWIDTH/2, WORLDHEIGHT/2);
 
-window.addEventListener("DOMContentLoaded", ()=>{
-    c.width = window.innerWidth;
-    c.height = window.innerHeight;
-    console.log("LOADED CANVAS");
-})
-
-window.addEventListener("resize", ()=>{
-    c.style.width = window.innerWidth + "px";
-    c.style.height = window.innerHeight + "px";
-})
-
 window.addEventListener("keydown", (e)=>{
     if(e.code == "KeyW"){
-        MAINPLAYER.worldY -= 1;
+        MAINPLAYER.worldY -= 2;
     }
     if(e.code == "KeyS"){
-        MAINPLAYER.worldY += 1;
+        MAINPLAYER.worldY += 2;
     }
     if(e.code == "KeyA"){
-        MAINPLAYER.worldX -= 1;
+        MAINPLAYER.worldX -= 2;
     }
-    if(e.code == "KeyS"){
-        MAINPLAYER.worldX += 1;
+    if(e.code == "KeyD"){
+        MAINPLAYER.worldX += 2;
     }
-    console.log(MAINPLAYER.worldX, MAINPLAYER.worldY);
+    // console.log("SCREEN", MAINPLAYER.screenX, MAINPLAYER.screenY, "WORLD", MAINPLAYER.worldX, MAINPLAYER.worldY);
 })
 
 function draw_line(x0, y0, x1, y1, color){
@@ -84,20 +84,22 @@ function draw_circle(x, y, radius, color){
 }
 
 function clear(){
-    ctx.clearRect(0, 0, WORLDWIDTH, WORLDHEIGHT);
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 }
 
 function draw_background(){
     clear();
 
-    draw_rect(0, 0, 0 - MAINPLAYER.worldX + MAINPLAYER.screenX, 0 - MAINPLAYER.worldY + MAINPLAYER.screenY, "black");
+    var sX = 0 - MAINPLAYER.worldX + MAINPLAYER.screenX;
+    var sY = 0 - MAINPLAYER.worldY + MAINPLAYER.screenY; 
+    draw_rect(sX, sY, WORLDWIDTH, WORLDHEIGHT, "black");
 
-    // for(let i = 0; i < WORLDWIDTH; i+=20){
-    //     for(let j = 0; j < WORLDHEIGHT; j+=20){
-    //         draw_line(i, 0, i, WORLDHEIGHT, "black");
-    //         draw_line(0, j, WORLDWIDTH, j, "black");
-    //     }
-    // }
+    for(let i = 0; i < WORLDWIDTH; i += 25){
+        for(let j = 0; j < WORLDHEIGHT; j += 25){
+            draw_line(i + sX, sY, i + sX, sY + WORLDHEIGHT, "black");
+            draw_line(sX, j + sY, sX + WORLDWIDTH, j + sY, "blacl");
+        }
+    }
 }
 
 function start(){
@@ -109,7 +111,7 @@ function update(){
     MAINPLAYER.display();
 }
 
-setInterval(update, 1000);
+setInterval(update, 1000/60);
 
 const websocket = new WebSocket("ws://localhost:8001/");
 
