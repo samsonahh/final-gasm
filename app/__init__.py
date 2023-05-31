@@ -4,6 +4,7 @@ import websockets
 async def handler(websocket):
     async for message in websocket:
         print(message)
+        await websocket.send("HELLO BACK")
 
 async def main():
     async with websockets.serve(handler, "", 8001):
