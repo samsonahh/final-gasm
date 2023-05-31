@@ -1,6 +1,8 @@
 const c = document.getElementById("canvas");
 const ctx = c.getContext("2d");
 
+const websocket = new WebSocket("ws://localhost:8001/");
+
 ctx.canvas.width = window.innerWidth;
 ctx.canvas.height = window.innerHeight;
 
@@ -143,8 +145,6 @@ function draw_background(){
         }
     }
 }
-
-const websocket = new WebSocket("ws://localhost:8001/");
 
 function sendLocalData(data){
     websocket.send(JSON.stringify(data));

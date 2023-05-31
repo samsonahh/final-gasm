@@ -17,7 +17,7 @@ async def handler(websocket):
         await websocket.send(json.dumps(players))
 
 async def main():
-    async with websockets.serve(handler, "", 8001):
+    async with websockets.serve(handler, "0.0.0.0", 8001):
         await asyncio.Future()
 
 
