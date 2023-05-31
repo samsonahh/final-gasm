@@ -171,8 +171,10 @@ function update(){
     MAINPLAYER.handle_movement();
 
     for(let i = 0; i < PLAYERS.length; i++){
-        p = new Player(PLAYERS[i].x, PLAYERS[i].y);
-        p.display();
+        if(PLAYERS[i].id != localData.id){
+            p = new Player(PLAYERS[i].x, PLAYERS[i].y);
+            p.display();
+        }
     }
 
     localData.x = MAINPLAYER.worldX;
