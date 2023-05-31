@@ -13,8 +13,26 @@
             padding: 0 !important;
             overflow: hidden;
         }
+
+        .center-screen {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            min-height: 100vh;
+        }
     </style>
     <canvas id="canvas" style="border: 3px solid;"></canvas>
+    <div
+        id="menu"
+        style="display: inline-block;position: fixed;top: 0;bottom: 0;left: 0;right: 0;width: 350px;height: 300px;margin: auto;background-color: #ffffff; border: solid 5px; text-align: center;">
+        <h1>ARENA</h1>
+        Name: <input type="text" id="name"><br><br>
+        Server: <select name="servers" id="servers">
+            <option value="Main">Main</option>
+          </select> <br> <br>
+        <button>Play</button>
+    </div>
     <script src="../static/js/home.js"></script>
 </body>
 

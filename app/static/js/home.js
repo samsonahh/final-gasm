@@ -1,10 +1,13 @@
 const c = document.getElementById("canvas");
 const ctx = c.getContext("2d");
 
-const websocket = new WebSocket("ws://localhost:8001/");
-
 ctx.canvas.width = window.innerWidth;
 ctx.canvas.height = window.innerHeight;
+
+const WORLDWIDTH = 500;
+const WORLDHEIGHT = 500;
+
+const websocket = new WebSocket("ws://localhost:8001/");
 
 window.addEventListener("DOMContentLoaded", ()=>{
     update();
@@ -13,11 +16,7 @@ window.addEventListener("DOMContentLoaded", ()=>{
 window.addEventListener("resize", ()=>{
     ctx.canvas.width = window.innerWidth;
     ctx.canvas.height = window.innerHeight;
-    // console.log("CANVAS RESIZED", ctx.canvas.width, ctx.canvas.height);
 })
-
-const WORLDWIDTH = 500;
-const WORLDHEIGHT = 500;
 
 class Player{
     worldX;
@@ -66,7 +65,7 @@ class MainPlayer extends Player{
 const MAINPLAYER = new MainPlayer(WORLDWIDTH/2, WORLDHEIGHT/2);
 var PLAYERS = [];
 
-var localData = {
+var local_data = {
     "id": 0,
     name: "MAIN",
     x: MAINPLAYER.worldX,
@@ -153,7 +152,7 @@ function sendLocalData(data){
 websocket.addEventListener("message", ({data}) => {
     d = JSON.parse(data)
     if(d.hasOwnProperty("id")){
-        localData.id = d.id;
+        local_data.id = d.id;
     }
     PLAYERS = d;
     console.log(PLAYERS);
@@ -171,16 +170,16 @@ function update(){
     MAINPLAYER.handle_movement();
 
     for(let i = 0; i < PLAYERS.length; i++){
-        if(PLAYERS[i].id != localData.id){
+        if(PLAYERS[i].id != local_data.id){
             p = new Player(PLAYERS[i].x, PLAYERS[i].y);
             p.display();
         }
     }
 
-    localData.x = MAINPLAYER.worldX;
-    localData.y = MAINPLAYER.worldY;
+    local_data.x = MAINPLAYER.worldX;
+    local_data.y = MAINPLAYER.worldY;
 
     if(websocket.readyState == WebSocket.OPEN){
-        sendLocalData(localData);
+        sendLocalData(local_data);
     }
 }
