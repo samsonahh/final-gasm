@@ -27,8 +27,12 @@ async def main():
 
 def update_players(players, data):
     for i in range(len(players)):
-        if players[i]["id"] == data["id"]:
-            players[i] = data
+        try:
+            if players[i]["id"] == data["id"]:
+                players[i] = data
+        except:
+            print("Update players error")
+            players.pop(i)
 
 def pop_player(players, id):
     for i in range(len(players)):
