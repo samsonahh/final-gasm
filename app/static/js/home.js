@@ -1,3 +1,11 @@
+const FPS = 60;
+const INTERVAL = Math.floor(1000 / FPS); // rounding down since our code will rarely run at the exact interval
+let START_TIME = performance.now();
+let PREVIOUS_TIME = START_TIME;
+
+let CURRENT_TIME = 0;
+let DELTA_TIME = 0;
+
 const WORLDWIDTH = 500;
 const WORLDHEIGHT = 500;
 
@@ -7,7 +15,7 @@ var ID;
 var PLAYING = false;
 var PLAYERS = [];
 
-const websocket = new WebSocket("ws://localhost:8001/");
+var websocket;
 
 const c = document.getElementById("canvas");
 const ctx = c.getContext("2d");
@@ -15,12 +23,28 @@ const ctx = c.getContext("2d");
 const menu = document.getElementById("menu");
 const play_button = document.getElementById("play");
 const name_input = document.getElementById("name");
+const server_dropdown = document.getElementById("servers");
+const error_msg = document.getElementById("error");
+
+setup_websocket("ws://localhost:8001/");
+update();
 
 play_button.addEventListener("click", (e)=>{
-    NAME = name_input.value;
-    menu.style.display = "none";
-    start();
-})
+    if(websocket.readyState == WebSocket.OPEN){
+        NAME = name_input.value;
+        menu.style.display = "none";
+        start();
+    }
+});
+
+server_dropdown.addEventListener("change", (e)=>{
+    if(server_dropdown.value == "localhost"){
+        setup_websocket("ws://localhost:8001/");
+    }
+    if(server_dropdown.value == "droplet"){
+        setup_websocket("ws://samsonahh.me:8001/");
+    }
+});
 
 ctx.canvas.width = window.innerWidth;
 ctx.canvas.height = window.innerHeight;
@@ -28,7 +52,7 @@ ctx.canvas.height = window.innerHeight;
 window.addEventListener("resize", ()=>{
     ctx.canvas.width = window.innerWidth;
     ctx.canvas.height = window.innerHeight;
-})
+});
 
 class Player{
     worldX;
@@ -86,16 +110,31 @@ function sendLocalData(data){
     websocket.send(JSON.stringify(data));
 }
 
-websocket.addEventListener("message", ({data}) => {
-    d = JSON.parse(data);
-    if(d.hasOwnProperty("id")){
-        console.log("CONNECTED");
-        ID = d.id;
-        update();
+function setup_websocket(address){
+    if(websocket){
+        websocket.close();
+        PLAYERS = [];
+        clear();
     }
-    PLAYERS = d;
-    console.log(PLAYERS);
-})
+    websocket = new WebSocket(address);
+
+    websocket.onerror = (e) => {
+        error_msg.style.display = "inline";
+        return;
+    }
+
+    error_msg.style.display = "none";
+
+    websocket.addEventListener("message", ({data}) => {
+        d = JSON.parse(data);
+        if(d.hasOwnProperty("id")){
+            console.log("Connection successful");
+            ID = d.id;
+        }
+        PLAYERS = d;
+        // console.log(PLAYERS);
+    })
+}
 
 function start(){
     MAINPLAYER = new MainPlayer(WORLDWIDTH/2, WORLDWIDTH/2, NAME);
@@ -131,39 +170,43 @@ function start(){
     })
 }
 
-function update(){
-    requestAnimationFrame(update);
+function update(timestamp){
+    CURRENT_TIME = timestamp;
+    DELTA_TIME = CURRENT_TIME - PREVIOUS_TIME;
 
-    draw_background();
-    if(PLAYING){
-        MAINPLAYER.display();
-        MAINPLAYER.handle_movement();
-    }
-
-    for(let i = 0; i < PLAYERS.length; i++){
-        if(PLAYERS[i].id != local_data.id){
-            p = new Player(PLAYERS[i].x, PLAYERS[i].y, PLAYERS[i].name);
-            p.display();
-        }
-    }
-
-    if(websocket.readyState == WebSocket.OPEN){
+    if(DELTA_TIME > INTERVAL){ // put all real updates in here (fixes fps)
+        draw_background();
         if(PLAYING){
-            local_data = {
-                id: ID,
-                name: NAME,
-                x: MAINPLAYER.worldX,
-                y: MAINPLAYER.worldY,
-                playing: PLAYING
-            };
+            MAINPLAYER.display();
+            MAINPLAYER.handle_movement();
         }
-        else{
-            local_data = {
-                id: ID
+    
+        for(let i = 0; i < PLAYERS.length; i++){
+            if(PLAYERS[i].id != local_data.id){
+                p = new Player(PLAYERS[i].x, PLAYERS[i].y, PLAYERS[i].name);
+                p.display();
             }
         }
-        sendLocalData(local_data);
+    
+        if(websocket.readyState == WebSocket.OPEN){
+            if(PLAYING){
+                local_data = {
+                    id: ID,
+                    name: NAME,
+                    x: MAINPLAYER.worldX,
+                    y: MAINPLAYER.worldY,
+                    playing: PLAYING
+                };
+            }
+            else{
+                local_data = {
+                    id: ID
+                }
+            }
+            sendLocalData(local_data);
+        }
     }
+    requestAnimationFrame(update);
 }
 
 
