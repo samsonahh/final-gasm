@@ -24,8 +24,7 @@
     </style>
     <canvas id="canvas" style="border: 3px solid;"></canvas>
 
-    <div
-        id="menu"
+    <div id="menu"
         style="display: inline-block;position: fixed;top: 0;bottom: 0;left: 0;right: 0;width: 350px;height: 300px;margin: auto;background-color: rgba(255, 255, 255, 0.85); border: solid 5px; text-align: center;">
         <h1>Super Slash Bros</h1>
         <b>Name:</b> <br>
@@ -36,15 +35,23 @@
         <select name="servers" id="servers">
             <option value="localhost">Localhost</option>
             <option value="droplet">Droplet</option>
-          </select> <br>
+        </select> <br>
         <b id="error" style="color: red; display: none;">Failed to connect to server</b> <br>
         <button id="play">Play</button>
     </div>
 
-    <div id="leaderboard" 
+    <div id="leaderboard"
         style="display: inline-block;position: fixed;top: 0;right: 0;width: 250px;height: 300px;margin: auto;background-color: rgba(255, 255, 255, 0.85); border: solid 5px; text-align: center;">
         <h1>Leaderboard</h1>
         <div id="player_list"></div>
+    </div>
+
+    <div id="death"
+        style="display: none;position: fixed;top: 0;bottom: 0;left: 0;right: 0;width: 300px;height: 225px;margin: auto;background-color: rgba(255, 255, 255, 0.85); border: solid 5px; text-align: center;">
+        <h1>You got pushed off!</h1>
+        <h2>Score: WIP</h2>
+        <button id="play_death">Play Again</button> <br><br>
+        <button id="menu_death">Menu</button>
     </div>
 
     <script src="../static/js/home.js"></script>
