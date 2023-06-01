@@ -23,19 +23,30 @@
         }
     </style>
     <canvas id="canvas" style="border: 3px solid;"></canvas>
+
     <div
         id="menu"
-        style="display: inline-block;position: fixed;top: 0;bottom: 0;left: 0;right: 0;width: 350px;height: 300px;margin: auto;background-color: #ffffff; border: solid 5px; text-align: center;">
+        style="display: inline-block;position: fixed;top: 0;bottom: 0;left: 0;right: 0;width: 350px;height: 300px;margin: auto;background-color: rgba(255, 255, 255, 0.85); border: solid 5px; text-align: center;">
         <h1>Super Slash Bros</h1>
         <b>Name:</b> <br>
         <input type="text" id="name"><br><br>
-        Server: <select name="servers" id="servers">
+        <div id="server_text">
+            Server:
+        </div>
+        <select name="servers" id="servers">
             <option value="localhost">Localhost</option>
             <option value="droplet">Droplet</option>
           </select> <br>
         <b id="error" style="color: red; display: none;">Failed to connect to server</b> <br>
         <button id="play">Play</button>
     </div>
+
+    <div id="leaderboard" 
+        style="display: inline-block;position: fixed;top: 0;right: 0;width: 250px;height: 300px;margin: auto;background-color: rgba(255, 255, 255, 0.85); border: solid 5px; text-align: center;">
+        <h1>Leaderboard</h1>
+        <div id="player_list"></div>
+    </div>
+
     <script src="../static/js/home.js"></script>
 </body>
 

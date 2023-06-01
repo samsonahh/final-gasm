@@ -11,12 +11,13 @@ async def handler(websocket):
     players.append(id_packet)
     await websocket.send(json.dumps(id_packet))
 
-    async for message in websocket:
-        data = json.loads(message)
-        update_players(players, data)
-        await websocket.send(json.dumps(players))
-
-    await websocket.wait_closed()
+    try:
+        async for message in websocket:
+            data = json.loads(message)
+            update_players(players, data)
+            await websocket.send(json.dumps(players))
+    except websockets.exceptions.ConnectionClosedOK:
+        pop_player(players, id_packet["id"])
     pop_player(players, id_packet["id"])
 
 async def main():
@@ -33,6 +34,7 @@ def pop_player(players, id):
     for i in range(len(players)):
         if players[i]["id"] == id:
             players.pop(i)
+            print(id, "left")
             break
     
 
