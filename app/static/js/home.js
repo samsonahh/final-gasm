@@ -1,34 +1,29 @@
-const VERSION = 0.1;
+const VERSION = 0.1; // Not implemented yet (makes sure a player is on the right version of game)
 
-const FPS = 60;
-const INTERVAL = Math.floor(1000 / FPS); // rounding down since our code will rarely run at the exact interval
-let START_TIME = performance.now();
-let PREVIOUS_TIME = START_TIME;
+const FPS = 60; // Set fixed FPS (ppl with 144 hz monitors would move faster vs ppl on 60 hz monitors)
+const INTERVAL = 1000 / FPS; // Rate at which canvas is updated in ms
 
-let CURRENT_TIME = 0;
-let DELTA_TIME = 0;
+const WORLDWIDTH = 750; // How wide our map is
+const WORLDHEIGHT = 750; // How tall our map is
 
-const WORLDWIDTH = 750;
-const WORLDHEIGHT = 750;
+var MAINPLAYER; // Will store our MainPlayer class. ONLY refers to the local player, not others.
+var NAME; // Name of our main player
+var ID; // ID of our main player (obtained by recieving a unique id upon initial connect)
+var PLAYING = false; // Is our player on the menu/death or playing?
+var PLAYERS = []; // Stores all players that the server gives back
 
-var MAINPLAYER;
-var NAME;
-var ID;
-var PLAYING = false;
-var PLAYERS = [];
+var LASTX = WORLDWIDTH / 2; // Camera will leave off at this x position when player dies
+var LASTY = WORLDHEIGHT / 2; // Camera will leave off at this y position when player dies
 
-var LASTX = WORLDWIDTH/2;
-var LASTY = WORLDHEIGHT/2;
-
-var websocket;
+var websocket; // Our websocket for server connection (can be changed for different server)
 
 const c = document.getElementById("canvas");
 const ctx = c.getContext("2d");
 
-ctx.canvas.width = window.innerWidth;
-ctx.canvas.height = window.innerHeight;
+ctx.canvas.width = window.innerWidth; // make fullscreen
+ctx.canvas.height = window.innerHeight; // make fullscreen
 
-window.addEventListener("resize", () => {
+window.addEventListener("resize", () => { //make fullscreen even when user resizes window
     ctx.canvas.width = window.innerWidth;
     ctx.canvas.height = window.innerHeight;
 });
@@ -44,11 +39,10 @@ const death_menu = document.getElementById("death");
 const play_death_button = document.getElementById("play_death");
 const menu_death_button = document.getElementById("menu_death");
 
-setup_websocket("ws://localhost:8001/");
-update();
+setup_websocket("ws://localhost:8001/"); // default server to connect to upon loading page
 
-play_button.addEventListener("click", (e) => {
-    if (websocket.readyState == WebSocket.OPEN) {
+play_button.addEventListener("click", (e) => { // handles when player clicks play on menu
+    if (websocket.readyState == WebSocket.OPEN) { // joins if connected to server
         if (name_input.value) {
             NAME = name_input.value;
         }
@@ -58,33 +52,33 @@ play_button.addEventListener("click", (e) => {
         menu.style.display = "none";
         start();
     }
-    else {
-        show_server_connected_msg(false);
+    else { // tries to rejoin same server if not connected
+        server_dropdown.dispatchEvent(new Event("change"));
     }
 });
 
 play_death_button.addEventListener("click", (e) => {
-    if (websocket.readyState == WebSocket.OPEN && !PLAYING) {
+    if (websocket.readyState == WebSocket.OPEN && !PLAYING) { // handles when player clicks play on death menu
         death_menu.style.display = "none";
         start();
     }
 })
 
-menu_death_button.addEventListener("click", (e)=>{
+menu_death_button.addEventListener("click", (e) => { // handles when player clicks menu on death menu
     death_menu.style.display = "none";
     menu.style.display = "inline-block";
 })
 
-server_dropdown.addEventListener("change", (e) => {
-    if (server_dropdown.value == "localhost") {
+server_dropdown.addEventListener("change", (e) => { // handles when dropdown is changed
+    if (server_dropdown.value == "localhost") { //connected to locally hosted server
         setup_websocket("ws://localhost:8001/");
     }
-    if (server_dropdown.value == "droplet") {
+    if (server_dropdown.value == "droplet") { //connects to our droplet server
         setup_websocket("ws://samsonahh.me:8001/");
     }
 });
 
-class Player {
+class Player { // general player class for everyone
     worldX;
     worldY;
     screenX;
@@ -98,11 +92,11 @@ class Player {
     }
 
     display() {
-        if (PLAYING) {
+        if (PLAYING) { // displays relative to main player
             this.screenX = this.worldX + MAINPLAYER.screenX - MAINPLAYER.worldX;
             this.screenY = this.worldY + MAINPLAYER.screenY - MAINPLAYER.worldY;
         }
-        else {
+        else { // displays relative to where the player last died/left off
             this.screenX = this.worldX + ctx.canvas.width / 2 - LASTX;
             this.screenY = this.worldY + ctx.canvas.height / 2 - LASTY;
         }
@@ -110,7 +104,8 @@ class Player {
     }
 }
 
-class MainPlayer extends Player {
+class MainPlayer extends Player { // specialized player class for the local player
+    // directional booleans for control
     up = false;
     down = false;
     left = false;
@@ -118,17 +113,17 @@ class MainPlayer extends Player {
 
     constructor(wx, wy, n) {
         super(wx, wy, n);
-        this.screenX = ctx.canvas.width / 2;
+        this.screenX = ctx.canvas.width / 2; // player is always centered in the middle of the screen
         this.screenY = ctx.canvas.height / 2;
     }
 
     display() {
-        this.screenX = ctx.canvas.width / 2;
+        this.screenX = ctx.canvas.width / 2; // ensures player is still centered even after window resize
         this.screenY = ctx.canvas.height / 2;
         draw_circle_text(this.screenX, this.screenY, 30, "cyan", this.name);
     }
 
-    handle_movement() {
+    handle_movement() { // move 2 units in direction
         if (this.up) this.worldY -= 2;
         if (this.down) this.worldY += 2;
         if (this.left) this.worldX -= 2;
@@ -136,8 +131,8 @@ class MainPlayer extends Player {
         this.check_bounds();
     }
 
-    check_bounds() {
-        if (this.worldY > WORLDHEIGHT + 30 || this.worldY < -30 || this.worldX > WORLDWIDTH + 30 || this.worldX < -30){
+    check_bounds() { // handles if player is knocked outside
+        if (this.worldY > WORLDHEIGHT + 30 || this.worldY < -30 || this.worldX > WORLDWIDTH + 30 || this.worldX < -30) {
             kill_player();
         }
     }
@@ -152,32 +147,36 @@ class MainPlayer extends Player {
     }
 }
 
-function send_local_data(data) {
+function send_local_data(data) { // send data to server
     websocket.send(JSON.stringify(data));
 }
 
-function setup_websocket(address) {
+function setup_websocket(address) { // websockets connects to the specified address
     error_msg.style.display = "none";
-    
+
     if (websocket) {
         websocket.close();
         PLAYERS = [];
         clear();
         websocket.removeEventListener("message", handle_server_data);
+        websocket.onerror = () => {};
+        websocket.onclose = () => {};
     }
     websocket = new WebSocket(address);
 
     websocket.onerror = (e) => {
         show_server_connected_msg(false);
         return;
-    }
+    };
+
+    websocket.onclose = handle_server_disconnect;
 
     websocket.addEventListener("message", handle_server_data);
 }
 
-function handle_server_data({data}){
+function handle_server_data({ data }) {
     d = JSON.parse(data);
-    if (d.hasOwnProperty("id")) {
+    if (d.hasOwnProperty("id") && Object.keys(d).length == 1) {
         ID = d.id;
         show_server_connected_msg(true);
     }
@@ -193,50 +192,50 @@ function start() {
     enable_controls();
 }
 
-function update(timestamp) {
-    CURRENT_TIME = timestamp;
-    DELTA_TIME = CURRENT_TIME - PREVIOUS_TIME;
+function update() {
+    draw_background();
+    update_player_list();
 
-    if (DELTA_TIME > INTERVAL) { // put all real updates in here (fixes fps)
-        draw_background();
-        update_player_list();
-
-        for (let i = 0; i < PLAYERS.length; i++) {
-            if (PLAYERS[i].id != local_data.id) {
-                p = new Player(PLAYERS[i].x, PLAYERS[i].y, PLAYERS[i].name);
-                p.display();
-                if (PLAYING) {
-                    MAINPLAYER.handle_collision(p);
-                }
-            }
-        }
-
-        if (PLAYING) {
-            MAINPLAYER.display();
-            MAINPLAYER.handle_movement();
-        }
-
-        if (websocket.readyState == WebSocket.OPEN) {
+    for (let i = 0; i < PLAYERS.length; i++) {
+        if (PLAYERS[i].id != ID) {
+            p = new Player(PLAYERS[i].x, PLAYERS[i].y, PLAYERS[i].name);
+            p.display();
             if (PLAYING) {
-                local_data = {
-                    id: ID,
-                    name: NAME,
-                    x: MAINPLAYER.worldX,
-                    y: MAINPLAYER.worldY,
-                    playing: PLAYING
-                };
+                MAINPLAYER.handle_collision(p);
             }
-            else {
-                local_data = {
-                    id: ID
-                }
-            }
-            send_local_data(local_data);
         }
     }
-    requestAnimationFrame(update);
-}
 
+    if (PLAYING) {
+        MAINPLAYER.display();
+        MAINPLAYER.handle_movement();
+    }
+
+    if (websocket.readyState == WebSocket.OPEN) {
+        play_button.innerHTML = "Play";
+        if (PLAYING) {
+            local_data = {
+                id: ID,
+                name: NAME,
+                x: MAINPLAYER.worldX,
+                y: MAINPLAYER.worldY,
+                playing: PLAYING
+            };
+        }
+        else {
+            local_data = {
+                id: ID
+            };
+        }
+        send_local_data(local_data);
+    }
+
+    if(websocket.readyState == WebSocket.CLOSED){
+        play_button.innerHTML = "Retry";
+        show_server_connected_msg(false);
+    }
+}
+ setInterval(update, INTERVAL);
 
 
 
@@ -319,7 +318,7 @@ function show_server_connected_msg(is_connected) {
     else {
         error_msg.style.display = "inline";
         error_msg.innerHTML = "Failed to connect to server";
-        error_msg.style.color = " red";
+        error_msg.style.color = "red";
     }
 }
 
@@ -381,7 +380,7 @@ function enable_controls() {
     check_focused();
 }
 
-function check_keys_down(e){
+function check_keys_down(e) {
     if (e.code == "KeyW") {
         MAINPLAYER.up = true;
     }
@@ -396,7 +395,7 @@ function check_keys_down(e){
     }
 }
 
-function check_keys_up(e){
+function check_keys_up(e) {
     if (e.code == "KeyW") {
         MAINPLAYER.up = false;
     }
@@ -411,15 +410,15 @@ function check_keys_up(e){
     }
 }
 
-function disable_controls(){
+function disable_controls() {
     window.removeEventListener("keydown", check_keys_down);
     window.removeEventListener("keyup", check_keys_up);
     window.removeEventListener("contextmenu", stop_movement);
     document.removeEventListener("visibilitychange", stop_movement);
-    window.onblur = () => {};
+    window.onblur = () => { };
 }
 
-function kill_player(){
+function kill_player() {
     disable_controls();
 
     LASTX = MAINPLAYER.worldX;
@@ -429,4 +428,16 @@ function kill_player(){
     MAINPLAYER = undefined;
 
     death_menu.style.display = "inline-block";
+}
+
+function handle_server_disconnect(){
+    if(PLAYING){
+        kill_player();
+        death_menu.style.display = "none";
+        menu.style.display = "inline-block";
+
+        error_msg.style.display = "inline";
+        error_msg.innerHTML = "Server closed unexpectedly";
+        error_msg.style.color = "red";
+    }
 }
