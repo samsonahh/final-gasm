@@ -5,6 +5,7 @@ const INTERVAL = 1000 / FPS; // Rate at which canvas is updated in ms
 
 const WORLDWIDTH = 750; // How wide our map is
 const WORLDHEIGHT = 750; // How tall our map is
+const PLAYER_CAP = 5;
 
 var MAINPLAYER; // Will store our MainPlayer class. ONLY refers to the local player, not others.
 var NAME; // Name of our main player
@@ -43,15 +44,23 @@ const menu_death_button = document.getElementById("menu_death");
 setup_websocket("ws://samsonahh.me:8001/"); // default server to connect to upon loading page
 
 play_button.addEventListener("click", (e) => { // handles when player clicks play on menu
-    if (websocket.readyState == WebSocket.OPEN) { // joins if connected to server
+    if (websocket.readyState == WebSocket.OPEN) { // attempts to join if connected to server
         if (name_input.value) {
             NAME = name_input.value;
         }
         else {
             NAME = "unnamed";
         }
-        menu.style.display = "none";
-        start();
+
+        if(get_players_playing() >= PLAYER_CAP){
+            error_msg.style.display = "inline";
+            error_msg.innerHTML = "Lobby is full";
+            error_msg.style.color = "red";
+        }
+        else{
+            menu.style.display = "none";
+            start();
+        }
     }
     else { // tries to rejoin same server if not connected
         server_dropdown.dispatchEvent(new Event("change"));
@@ -60,8 +69,16 @@ play_button.addEventListener("click", (e) => { // handles when player clicks pla
 
 play_death_button.addEventListener("click", (e) => {
     if (websocket.readyState == WebSocket.OPEN && !PLAYING) { // handles when player clicks play on death menu
-        death_menu.style.display = "none";
-        start();
+        if(get_players_playing() >= PLAYER_CAP){
+            menu_death_button.dispatchEvent(new Event("click"));
+            error_msg.style.display = "inline";
+            error_msg.innerHTML = "Lobby is full";
+            error_msg.style.color = "red";
+        }
+        else{
+            menu.style.display = "none";
+            start();
+        }
     }
 })
 
@@ -156,12 +173,7 @@ function setup_websocket(address) { // websockets connects to the specified addr
     error_msg.style.display = "none";
 
     if (websocket) { // if you are already connected then gracefully disconnect
-        websocket.close();
-        PLAYERS = [];
-        clear();
-        websocket.removeEventListener("message", handle_server_data);
-        websocket.onerror = () => {};
-        websocket.onclose = () => {};
+        handle_server_disconnect();
     }
     websocket = new WebSocket(address);
 
@@ -183,7 +195,7 @@ function handle_server_data({ data }) {
     }
     PLAYERS = d; // updates local PLAYERS list with server's players list
     console.log(PLAYERS);
-    server_text.innerText = "Server (" + get_players_playing() + "):"
+    server_text.innerText = "Server (" + get_players_playing() + "/" + PLAYER_CAP + "):"
 }
 
 function start() { // called once when Play is pressed
@@ -441,4 +453,10 @@ function handle_server_disconnect(){
         error_msg.innerHTML = "Server closed unexpectedly";
         error_msg.style.color = "red";
     }
+    websocket.close();
+    PLAYERS = [];
+    clear();
+    websocket.removeEventListener("message", handle_server_data);
+    websocket.onerror = () => {};
+    websocket.onclose = () => {};
 }
