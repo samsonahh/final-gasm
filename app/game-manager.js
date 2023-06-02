@@ -28,6 +28,7 @@ window.addEventListener("resize", () => { //make fullscreen even when user resiz
     ctx.canvas.height = window.innerHeight;
 });
 
+// grab all the HTML stuff
 const menu = document.getElementById("menu");
 const play_button = document.getElementById("play");
 const name_input = document.getElementById("name");
@@ -39,7 +40,7 @@ const death_menu = document.getElementById("death");
 const play_death_button = document.getElementById("play_death");
 const menu_death_button = document.getElementById("menu_death");
 
-setup_websocket("ws://localhost:8001/"); // default server to connect to upon loading page
+setup_websocket("ws://samsonahh.me:8001/"); // default server to connect to upon loading page
 
 play_button.addEventListener("click", (e) => { // handles when player clicks play on menu
     if (websocket.readyState == WebSocket.OPEN) { // joins if connected to server
@@ -154,7 +155,7 @@ function send_local_data(data) { // send data to server
 function setup_websocket(address) { // websockets connects to the specified address
     error_msg.style.display = "none";
 
-    if (websocket) {
+    if (websocket) { // if you are already connected then gracefully disconnect
         websocket.close();
         PLAYERS = [];
         clear();
@@ -174,29 +175,29 @@ function setup_websocket(address) { // websockets connects to the specified addr
     websocket.addEventListener("message", handle_server_data);
 }
 
-function handle_server_data({ data }) {
+function handle_server_data({ data }) { 
     d = JSON.parse(data);
-    if (d.hasOwnProperty("id") && Object.keys(d).length == 1) {
+    if (d.hasOwnProperty("id") && Object.keys(d).length == 1) { // if server sends back only a player id then store that as your new ID
         ID = d.id;
         show_server_connected_msg(true);
     }
-    PLAYERS = d;
+    PLAYERS = d; // updates local PLAYERS list with server's players list
     console.log(PLAYERS);
     server_text.innerText = "Server (" + get_players_playing() + "):"
 }
 
-function start() {
-    MAINPLAYER = new MainPlayer(Math.random() * (WORLDWIDTH - 30) + 30, Math.random() * (WORLDHEIGHT - 30) + 30, NAME);
+function start() { // called once when Play is pressed
+    MAINPLAYER = new MainPlayer(Math.random() * (WORLDWIDTH - 30) + 30, Math.random() * (WORLDHEIGHT - 30) + 30, NAME); // spawn random location
     PLAYING = true;
 
     enable_controls();
 }
 
-function update() {
+function update() { // called every frame when page is loaded
     draw_background();
-    update_player_list();
+    update_player_list(); // updates the leaderboard
 
-    for (let i = 0; i < PLAYERS.length; i++) {
+    for (let i = 0; i < PLAYERS.length; i++) { // draws all other players and handles collision with them
         if (PLAYERS[i].id != ID) {
             p = new Player(PLAYERS[i].x, PLAYERS[i].y, PLAYERS[i].name);
             p.display();
@@ -211,7 +212,7 @@ function update() {
         MAINPLAYER.handle_movement();
     }
 
-    if (websocket.readyState == WebSocket.OPEN) {
+    if (websocket.readyState == WebSocket.OPEN) { // send back our local player's data to the server
         play_button.innerHTML = "Play";
         if (PLAYING) {
             local_data = {
@@ -235,7 +236,7 @@ function update() {
         show_server_connected_msg(false);
     }
 }
- setInterval(update, INTERVAL);
+ setInterval(update, INTERVAL); // creates 60 FPS by updating loop every INTERVAL = 1000/FPS = 13.333... milliseconds
 
 
 
@@ -322,7 +323,7 @@ function show_server_connected_msg(is_connected) {
     }
 }
 
-function update_player_list() {
+function update_player_list() { // updates the leaderboard
     clear_player_list();
     var position = 1;
     for (let i = 0; i < PLAYERS.length; i++) {
@@ -337,7 +338,7 @@ function update_player_list() {
     }
 }
 
-function clear_player_list() {
+function clear_player_list() { // clears the leaderboard
     children = []
     for (let i = 0; i < player_list.childNodes.length; i++) {
         children[i] = player_list.childNodes[i];
@@ -354,7 +355,7 @@ function stop_movement() {
     MAINPLAYER.right = false;
 }
 
-function check_focused() {
+function check_focused() { // stop movement when user tabs out, right clicks, or clicks on different window
     window.addEventListener("contextmenu", stop_movement);
 
     document.addEventListener("visibilitychange", stop_movement);
@@ -362,7 +363,7 @@ function check_focused() {
     window.onblur = stop_movement;
 }
 
-function get_players_playing() {
+function get_players_playing() { // return number of players playing
     let answer = 0;
     for (let i = 0; i < PLAYERS.length; i++) {
         if (PLAYERS[i].playing) {
