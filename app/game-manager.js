@@ -16,10 +16,15 @@ var PLAYERS = []; // Stores all players that the server gives back
 var LASTX = WORLDWIDTH / 2; // Camera will leave off at this x position when player dies
 var LASTY = WORLDHEIGHT / 2; // Camera will leave off at this y position when player dies
 
+var MOUSEX; // will store mouse pos on the screen
+var MOUSEY;
+
 var websocket; // Our websocket for server connection (can be changed for different server)
 
 const c = document.getElementById("canvas");
 const ctx = c.getContext("2d");
+
+canvas.addEventListener('mousemove', get_mouse_position);
 
 ctx.canvas.width = window.innerWidth; // make fullscreen
 ctx.canvas.height = window.innerHeight; // make fullscreen
@@ -52,13 +57,14 @@ play_button.addEventListener("click", (e) => { // handles when player clicks pla
             NAME = "unnamed";
         }
 
-        if(get_players_playing() >= PLAYER_CAP){
+        if (get_players_playing() >= PLAYER_CAP) {
             error_msg.style.display = "inline";
             error_msg.innerHTML = "Lobby is full";
             error_msg.style.color = "red";
         }
-        else{
+        else {
             menu.style.display = "none";
+            get_mouse_position(e);
             start();
         }
     }
@@ -69,14 +75,15 @@ play_button.addEventListener("click", (e) => { // handles when player clicks pla
 
 play_death_button.addEventListener("click", (e) => {
     if (websocket.readyState == WebSocket.OPEN && !PLAYING) { // handles when player clicks play on death menu
-        if(get_players_playing() >= PLAYER_CAP){
+        if (get_players_playing() >= PLAYER_CAP) {
             menu_death_button.dispatchEvent(new Event("click"));
             error_msg.style.display = "inline";
             error_msg.innerHTML = "Lobby is full";
             error_msg.style.color = "red";
         }
-        else{
-            menu.style.display = "none";
+        else {
+            death_menu.style.display = "none";
+            get_mouse_position(e);
             start();
         }
     }
@@ -139,6 +146,7 @@ class MainPlayer extends Player { // specialized player class for the local play
         this.screenX = ctx.canvas.width / 2; // ensures player is still centered even after window resize
         this.screenY = ctx.canvas.height / 2;
         draw_circle_text(this.screenX, this.screenY, 30, "cyan", this.name);
+        draw_line(this.screenX, this.screenY, MOUSEX, MOUSEY, "black");
     }
 
     handle_movement() { // move 2 units in direction
@@ -163,6 +171,10 @@ class MainPlayer extends Player { // specialized player class for the local play
             this.worldY = other.worldY + vector[1] * 60;
         }
     }
+
+    swing(){
+        console.log("SWING");
+    }
 }
 
 function send_local_data(data) { // send data to server
@@ -177,24 +189,24 @@ function setup_websocket(address) { // websockets connects to the specified addr
     }
     websocket = new WebSocket(address);
 
-    websocket.onerror = (e) => {
+    websocket.onerror = (e) => { // if there is error connecting to server
         show_server_connected_msg(false);
         return;
     };
 
-    websocket.onclose = handle_server_disconnect;
+    websocket.onclose = handle_server_disconnect; // if server forcibly closes
 
-    websocket.addEventListener("message", handle_server_data);
+    websocket.addEventListener("message", handle_server_data); // start listening for data from server
 }
 
-function handle_server_data({ data }) { 
+function handle_server_data({ data }) {
     d = JSON.parse(data);
     if (d.hasOwnProperty("id") && Object.keys(d).length == 1) { // if server sends back only a player id then store that as your new ID
         ID = d.id;
         show_server_connected_msg(true);
     }
     PLAYERS = d; // updates local PLAYERS list with server's players list
-    console.log(PLAYERS);
+    // console.log(PLAYERS);
     server_text.innerText = "Server (" + get_players_playing() + "/" + PLAYER_CAP + "):"
 }
 
@@ -243,12 +255,12 @@ function update() { // called every frame when page is loaded
         send_local_data(local_data);
     }
 
-    if(websocket.readyState == WebSocket.CLOSED){
+    if (websocket.readyState == WebSocket.CLOSED) {
         play_button.innerHTML = "Retry";
         show_server_connected_msg(false);
     }
 }
- setInterval(update, INTERVAL); // creates 60 FPS by updating loop every INTERVAL = 1000/FPS = 13.333... milliseconds
+setInterval(update, INTERVAL); // creates 60 FPS by updating loop every INTERVAL = 1000/FPS = 13.333... milliseconds
 
 
 
@@ -264,7 +276,7 @@ function draw_line(x0, y0, x1, y1, color) {
     ctx.beginPath();
     ctx.moveTo(x0, y0);
     ctx.lineTo(x1, y1);
-    strokeStyle = color;
+    ctx.strokeStyle = color;
     ctx.stroke();
 }
 
@@ -387,10 +399,18 @@ function get_players_playing() { // return number of players playing
 
 function enable_controls() {
     window.addEventListener("keydown", check_keys_down);
-
     window.addEventListener("keyup", check_keys_up);
-
+    window.addEventListener("click", MAINPLAYER.swing);
     check_focused();
+}
+
+function disable_controls() {
+    window.removeEventListener("keydown", check_keys_down);
+    window.removeEventListener("keyup", check_keys_up);
+    window.removeEventListener("click", MAINPLAYER.swing);
+    window.removeEventListener("contextmenu", stop_movement);
+    document.removeEventListener("visibilitychange", stop_movement);
+    window.onblur = () => { };
 }
 
 function check_keys_down(e) {
@@ -423,14 +443,6 @@ function check_keys_up(e) {
     }
 }
 
-function disable_controls() {
-    window.removeEventListener("keydown", check_keys_down);
-    window.removeEventListener("keyup", check_keys_up);
-    window.removeEventListener("contextmenu", stop_movement);
-    document.removeEventListener("visibilitychange", stop_movement);
-    window.onblur = () => { };
-}
-
 function kill_player() {
     disable_controls();
 
@@ -443,8 +455,8 @@ function kill_player() {
     death_menu.style.display = "inline-block";
 }
 
-function handle_server_disconnect(){
-    if(PLAYING){
+function handle_server_disconnect() {
+    if (PLAYING) {
         kill_player();
         death_menu.style.display = "none";
         menu.style.display = "inline-block";
@@ -453,10 +465,16 @@ function handle_server_disconnect(){
         error_msg.innerHTML = "Server closed unexpectedly";
         error_msg.style.color = "red";
     }
-    websocket.close();
-    PLAYERS = [];
-    clear();
+
+    websocket.close(); // close current connection
+    PLAYERS = []; // clear players
+    clear(); // clear canvas
     websocket.removeEventListener("message", handle_server_data);
-    websocket.onerror = () => {};
-    websocket.onclose = () => {};
+    websocket.onerror = () => { };
+    websocket.onclose = () => { };
+}
+
+function get_mouse_position(e){
+    MOUSEX = e.offsetX;
+    MOUSEY = e.offsetY;
 }

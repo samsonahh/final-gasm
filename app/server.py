@@ -4,31 +4,34 @@ import json
 
 PLAYERS = []
 
-async def handler(websocket):
-    id_packet = {
+async def handler(websocket): # all connection is handled here
+    id_packet = { # store unique id as a single dict
         "id": str(websocket.id)
     }
-    PLAYERS.append(id_packet)
+    PLAYERS.append(id_packet) # add the newly connected player to our player list
     print(websocket.id, "connected")
-    await websocket.send(json.dumps(id_packet))
+    await websocket.send(json.dumps(id_packet)) # let the new player know what their unique id is
 
-    while True:
-        try:
-            message = await websocket.recv()
-            data = json.loads(message)
-            if data == {}:
+    while True: # while the player is connected
+        try: # attempt to communicate with client
+            message = await websocket.recv() # grab the client's player position (string)
+            data = json.loads(message) # turn the string into a dictionary
+
+            if data == {}: # if the client never received their id
                 print(websocket.id, "connected with an error")
-                remove_player(id_packet['id'])
-                break
-            update_players(data)
-            await websocket.send(json.dumps(PLAYERS))
-        except websockets.exceptions.ConnectionClosed:
+                remove_player(id_packet['id']) 
+                break # closes the connection with the client
+
+            update_players(data) # updates player data
+            await websocket.send(json.dumps(PLAYERS)) # send all players' data back to client
+
+        except websockets.exceptions.ConnectionClosed: # if client disconnects or communication fails with client
             remove_player(id_packet['id'])
             print(websocket.id, "disconnected")
-            break
+            break # closes the connection with the client
 
-async def main():
-    async with websockets.serve(handler, "0.0.0.0", 8001):
+async def main(): # initializes the server (starts once when executing this file)
+    async with websockets.serve(handler, "0.0.0.0", 8001): # "0.0.0.0" refers to the machine the file is running on and 8001 is the port
         await asyncio.Future()
 
 def update_players(data):
