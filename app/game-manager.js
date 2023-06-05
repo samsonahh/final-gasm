@@ -14,6 +14,12 @@ let PLAYING = false; // Is our player on the menu/death or playing?
 let PLAYERS = []; // Stores all players that the server gives back
 let ANGLE = 0; // Stores local player's rotation
 
+//FOR SWINGING
+let SWINGING = 0; // 0 - not swinging, 1 - swinging, 2 - unswinging
+let SWING_TIMER = 0; // used to animate swinging
+let SWING_DELAY = 1; // set how fast player can swing
+let SWING_DELAY_TIMER = 0;
+
 var LASTX = WORLDWIDTH / 2; // Camera will leave off at this x position when player dies
 var LASTY = WORLDHEIGHT / 2; // Camera will leave off at this y position when player dies
 
@@ -117,7 +123,7 @@ class Player { // general player class for everyone
         this.name = n;
     }
 
-    display(angle) {
+    display(angle, swing_angle) {
         if (PLAYING) { // displays relative to main player
             this.screenX = this.worldX + MAINPLAYER.screenX - MAINPLAYER.worldX;
             this.screenY = this.worldY + MAINPLAYER.screenY - MAINPLAYER.worldY;
@@ -127,18 +133,7 @@ class Player { // general player class for everyone
             this.screenY = this.worldY + ctx.canvas.height / 2 - LASTY;
         }
 
-        ctx.lineWidth = 15;
-        draw_line(this.screenX, this.screenY, this.screenX + 75 * Math.cos(angle + Math.PI/2), this.screenY + 75 * Math.sin(angle + Math.PI/2), "rgb(100, 100, 100)"); // sword shaft
-        for(let i = 14 ; i > 0; i--){
-            ctx.lineWidth = i;
-            draw_line(this.screenX, this.screenY, this.screenX + (90-i) * Math.cos(angle + Math.PI/2), this.screenY + (90-i) * Math.sin(angle + Math.PI/2), "rgb(100, 100, 100)"); // sword tip   
-        }
-        ctx.lineWidth = 10;100
-        draw_line(this.screenX + 45 * Math.cos(angle + Math.PI/2 + Math.PI/8), this.screenY + 45 * Math.sin(angle + Math.PI/2 + Math.PI/8), this.screenX + 45 * Math.cos(angle + Math.PI/2 - Math.PI/8), this.screenY + 45 * Math.sin(angle + Math.PI/2 - Math.PI/8), "rgb(101, 67, 33)"); // cross guard of sword
-
-        ctx.lineWidth = 7.5;
-        draw_circle(this.screenX + 27 * Math.cos(angle + Math.PI/2), this.screenY + 27 * Math.sin(angle + Math.PI/2), 12, "rgb(150, 150, 150)"); // hand
-        ctx.lineWidth = 1;
+        draw_sword_and_hand(this.screenX, this.screenY, angle, swing_angle);
 
         ctx.lineWidth = 7.5;
         draw_circle_text(this.screenX, this.screenY, 30, "red", this.name); // the player's body
@@ -162,30 +157,19 @@ class MainPlayer extends Player { // specialized player class for the local play
         this.screenY = ctx.canvas.height / 2;
     }
 
-    display() {
+    display(swing_angle) {
         this.screenX = ctx.canvas.width / 2; // ensures player is still centered even after window resize
         this.screenY = ctx.canvas.height / 2;
-        draw_line(this.screenX, this.screenY, MOUSEX, MOUSEY, "black");
-        draw_circle(MOUSEX, MOUSEY, 5, "black");
-
+        
         let d_from_mouse = distance(this.screenX, this.screenY, MOUSEX, MOUSEY);
         ANGLE = Math.acos((MOUSEX - this.screenX)/d_from_mouse);
         if(MOUSEY < ctx.canvas.height/2){
             ANGLE*=-1;
         }
+        draw_line(this.screenX, this.screenY, this.screenX + 90 * Math.cos(ANGLE), this.screenY + 90 * Math.sin(ANGLE), "black");
+        draw_circle(this.screenX + 90 * Math.cos(ANGLE), this.screenY + 90 * Math.sin(ANGLE), 5, "black");
 
-        ctx.lineWidth = 15;
-        draw_line(this.screenX, this.screenY, this.screenX + 75 * Math.cos(ANGLE + Math.PI/2), this.screenY + 75 * Math.sin(ANGLE + Math.PI/2), "rgb(100, 100, 100)"); // sword shaft
-        for(let i = 14 ; i > 0; i--){
-            ctx.lineWidth = i;
-            draw_line(this.screenX, this.screenY, this.screenX + (90-i) * Math.cos(ANGLE + Math.PI/2), this.screenY + (90-i) * Math.sin(ANGLE + Math.PI/2), "rgb(100, 100, 100)"); // sword tip   
-        }
-        ctx.lineWidth = 10;
-        draw_line(this.screenX + 45 * Math.cos(ANGLE + Math.PI/2 + Math.PI/8), this.screenY + 45 * Math.sin(ANGLE + Math.PI/2 + Math.PI/8), this.screenX + 45 * Math.cos(ANGLE + Math.PI/2 - Math.PI/8), this.screenY + 45 * Math.sin(ANGLE + Math.PI/2 - Math.PI/8), "rgb(101, 67, 33)"); // cross guard of sword
-
-        ctx.lineWidth = 7.5;
-        draw_circle(this.screenX + 27 * Math.cos(ANGLE + Math.PI/2), this.screenY + 27 * Math.sin(ANGLE + Math.PI/2), 12, "rgb(150, 150, 150)"); // hand
-        ctx.lineWidth = 1;
+        draw_sword_and_hand(this.screenX, this.screenY, ANGLE, swing_angle);
 
         ctx.lineWidth = 7.5;
         draw_circle_text(this.screenX, this.screenY, 30, "cyan", this.name); // the player's body
@@ -210,16 +194,37 @@ class MainPlayer extends Player { // specialized player class for the local play
     }
 
     handle_collision(other) {
-        let d = distance(other.worldX, other.worldY, this.worldX, this.worldY);
+        let d = distance(other.x, other.y, this.worldX, this.worldY);
+        let vector = {
+            x: (this.worldX - other.x) / d,
+            y: (this.worldY - other.y) / d
+        };
         if (d < 60 && d > 0) {
-            let vector = [(this.worldX - other.worldX) / d, (this.worldY - other.worldY) / d];
-            this.worldX = other.worldX + vector[0] * 60;
-            this.worldY = other.worldY + vector[1] * 60;
+            this.worldX = other.x + vector.x * 60;
+            this.worldY = other.y + vector.y * 60;
+        }
+        //swing
+        let other_face_vector = {
+            x: Math.cos(other.angle),
+            y: Math.sin(other.angle)
+        };
+        let between_vector = {
+            x: this.worldX - other.x,
+            y: this.worldY - other.y
+        };
+        let dot = other_face_vector.x * between_vector.x + other_face_vector.y * between_vector.y;
+
+        if (other.swinging && d < 90 + 30 && dot >= 0){
+            console.log("DO SOMETHING");
         }
     }
 
-    swing(){
-        console.log("SWING");
+    start_swing(){
+        if(SWING_DELAY_TIMER > SWING_DELAY && SWINGING == 0){
+            SWINGING = 1;
+            SWING_TIMER = 0;
+            SWING_DELAY_TIMER = 0;
+        }
     }
 }
 
@@ -252,14 +257,15 @@ function handle_server_data({ data }) {
         show_server_connected_msg(true);
     }
     PLAYERS = d; // updates local PLAYERS list with server's players list
-    console.log(PLAYERS);
+    // console.log(PLAYERS);
     server_text.innerText = "Server (" + get_players_playing() + "/" + PLAYER_CAP + "):"
 }
 
 function start() { // called once when Play is pressed
     MAINPLAYER = new MainPlayer(Math.random() * (WORLDWIDTH - 30) + 30, Math.random() * (WORLDHEIGHT - 30) + 30, NAME); // spawn random location
     PLAYING = true;
-
+    SWING_DELAY_TIMER = 0;
+    
     enable_controls();
 }
 
@@ -270,15 +276,17 @@ function update() { // called every frame when page is loaded
     for (let i = 0; i < PLAYERS.length; i++) { // draws all other players and handles collision with them
         if (PLAYERS[i].id != ID) {
             p = new Player(PLAYERS[i].x, PLAYERS[i].y, PLAYERS[i].name);
-            p.display(PLAYERS[i].angle);
+            p.display(PLAYERS[i].angle, PLAYERS[i].swing_angle);
             if (PLAYING) {
-                MAINPLAYER.handle_collision(p);
+                MAINPLAYER.handle_collision(PLAYERS[i]);
             }
         }
     }
 
     if (PLAYING) {
-        MAINPLAYER.display();
+        let swing_angle = get_swing_angle();
+
+        MAINPLAYER.display(swing_angle);
         MAINPLAYER.handle_movement();
     }
 
@@ -291,7 +299,9 @@ function update() { // called every frame when page is loaded
                 x: MAINPLAYER.worldX,
                 y: MAINPLAYER.worldY,
                 playing: PLAYING,
-                angle: ANGLE
+                angle: ANGLE,
+                swinging: SWINGING == 1 || SWINGING == 2,
+                swing_angle: get_swing_angle()
             };
         }
         else {
@@ -447,14 +457,14 @@ function get_players_playing() { // return number of players playing
 function enable_controls() {
     window.addEventListener("keydown", check_keys_down);
     window.addEventListener("keyup", check_keys_up);
-    window.addEventListener("click", MAINPLAYER.swing);
+    window.addEventListener("click", MAINPLAYER.start_swing);
     check_focused();
 }
 
 function disable_controls() {
     window.removeEventListener("keydown", check_keys_down);
     window.removeEventListener("keyup", check_keys_up);
-    window.removeEventListener("click", MAINPLAYER.swing);
+    window.removeEventListener("click", MAINPLAYER.start_swing);
     window.removeEventListener("contextmenu", stop_movement);
     document.removeEventListener("visibilitychange", stop_movement);
     window.onblur = () => { };
@@ -524,4 +534,42 @@ function handle_server_disconnect() {
 function get_mouse_position(e){
     MOUSEX = e.offsetX;
     MOUSEY = e.offsetY;
+}
+
+function get_swing_angle(){ // returns the swing angle used for animation
+    if(SWINGING == 1){
+        SWING_TIMER += 1/FPS; // deltatime
+    }
+
+    if(SWING_TIMER >= 0.25){
+        SWINGING = 2;
+    }
+
+    if(SWINGING == 2){
+        SWING_TIMER -= 1/FPS;
+    }
+
+    if(SWING_TIMER <= 0){
+        SWINGING = 0;
+        SWING_TIMER = 0;
+        SWING_DELAY_TIMER += 1/FPS;
+    }
+
+    // timer/0.25 = i/PI
+    return SWING_TIMER*(Math.PI)/0.25;
+}
+
+function draw_sword_and_hand(x, y, angle, swing_angle){
+    ctx.lineWidth = 15;
+    draw_line(x, y, x + 75 * Math.cos(angle + Math.PI/2 - swing_angle), y + 75 * Math.sin(angle + Math.PI/2 - swing_angle), "rgb(100, 100, 100)"); // sword shaft
+    for(let i = 14 ; i > 0; i--){
+        ctx.lineWidth = i;
+        draw_line(x, y, x + (90-i) * Math.cos(angle + Math.PI/2 - swing_angle), y + (90-i) * Math.sin(angle + Math.PI/2 - swing_angle), "rgb(100, 100, 100)"); // sword tip   
+    }
+    ctx.lineWidth = 10;100
+    draw_line(x + 45 * Math.cos(angle + Math.PI/2 + Math.PI/8 - swing_angle), y + 45 * Math.sin(angle + Math.PI/2 + Math.PI/8 - swing_angle), x + 45 * Math.cos(angle + Math.PI/2 - Math.PI/8 - swing_angle), y + 45 * Math.sin(angle + Math.PI/2 - Math.PI/8 - swing_angle), "rgb(101, 67, 33)"); // cross guard of sword
+
+    ctx.lineWidth = 7.5;
+    draw_circle(x + 27 * Math.cos(angle + Math.PI/2 - swing_angle), y + 27 * Math.sin(angle + Math.PI/2 - swing_angle), 12, "rgb(150, 150, 150)"); // hand
+    ctx.lineWidth = 1;
 }
