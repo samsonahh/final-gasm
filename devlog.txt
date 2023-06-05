@@ -1,0 +1,30 @@
+GASM
+Gitae Park
+Vivian Graeber
+Samson Wu
+Matthew Yee
+pd 7
+---------------------
+p05: Super Smack bros
+
+ ______   ______   __   __   __       ______   _______     
+/_____/\ /_____/\ /_/\ /_/\ /_/\     /_____/\ /______/\    
+\:::_ \ \\::::_\/_\:\ \\ \ \\:\ \    \:::_ \ \\::::__\/__  
+ \:\ \ \ \\:\/___/\\:\ \\ \ \\:\ \    \:\ \ \ \\:\ /____/\ 
+  \:\ \ \ \\::___\/_\:\_/.:\ \\:\ \____\:\ \ \ \\:\\_  _\/ 
+   \:\/.:| |\:\____/\\ ..::/ / \:\/___/\\:\_\ \ \\:\_\ \ \ 
+    \____/_/ \_____\/ \___/_/   \_____\/ \_____\/ \_____\/ 
+==============================================================
+||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+
+
+ALL -- 2023-6-05 8:29
+--------------------------------------------------------------
+- DD Feedback Summary:
+- Needed a real component map
+- Needed clarification on why Bootstrap and how the game would actually look like
+- DD Revisions:
+- Added a real component map drawing
+- Added a drawing of what the game would look like under site map
+- Picked title: Super Smack Bros
+- Minor clarifications: Map zoom, Bootstrap reason
