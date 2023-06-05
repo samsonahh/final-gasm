@@ -7,11 +7,12 @@ const WORLDWIDTH = 750; // How wide our map is
 const WORLDHEIGHT = 750; // How tall our map is
 const PLAYER_CAP = 5;
 
-var MAINPLAYER; // Will store our MainPlayer class. ONLY refers to the local player, not others.
-var NAME; // Name of our main player
-var ID; // ID of our main player (obtained by recieving a unique id upon initial connect)
-var PLAYING = false; // Is our player on the menu/death or playing?
-var PLAYERS = []; // Stores all players that the server gives back
+let MAINPLAYER; // Will store our MainPlayer class. ONLY refers to the local player, not others.
+let NAME; // Name of our main player
+let ID; // ID of our main player (obtained by recieving a unique id upon initial connect)
+let PLAYING = false; // Is our player on the menu/death or playing?
+let PLAYERS = []; // Stores all players that the server gives back
+let ANGLE = 0; // Stores local player's rotation
 
 var LASTX = WORLDWIDTH / 2; // Camera will leave off at this x position when player dies
 var LASTY = WORLDHEIGHT / 2; // Camera will leave off at this y position when player dies
@@ -116,7 +117,7 @@ class Player { // general player class for everyone
         this.name = n;
     }
 
-    display() {
+    display(angle) {
         if (PLAYING) { // displays relative to main player
             this.screenX = this.worldX + MAINPLAYER.screenX - MAINPLAYER.worldX;
             this.screenY = this.worldY + MAINPLAYER.screenY - MAINPLAYER.worldY;
@@ -125,7 +126,26 @@ class Player { // general player class for everyone
             this.screenX = this.worldX + ctx.canvas.width / 2 - LASTX;
             this.screenY = this.worldY + ctx.canvas.height / 2 - LASTY;
         }
-        draw_circle_text(this.screenX, this.screenY, 30, "red", this.name);
+
+        ctx.lineWidth = 15;
+        draw_line(this.screenX, this.screenY, this.screenX + 75 * Math.cos(angle + Math.PI/2), this.screenY + 75 * Math.sin(angle + Math.PI/2), "rgb(100, 100, 100)"); // sword shaft
+        for(let i = 14 ; i > 0; i--){
+            ctx.lineWidth = i;
+            draw_line(this.screenX, this.screenY, this.screenX + (90-i) * Math.cos(angle + Math.PI/2), this.screenY + (90-i) * Math.sin(angle + Math.PI/2), "rgb(100, 100, 100)"); // sword tip   
+        }
+        ctx.lineWidth = 10;100
+        draw_line(this.screenX + 45 * Math.cos(angle + Math.PI/2 + Math.PI/8), this.screenY + 45 * Math.sin(angle + Math.PI/2 + Math.PI/8), this.screenX + 45 * Math.cos(angle + Math.PI/2 - Math.PI/8), this.screenY + 45 * Math.sin(angle + Math.PI/2 - Math.PI/8), "rgb(101, 67, 33)"); // cross guard of sword
+
+        ctx.lineWidth = 7.5;
+        draw_circle(this.screenX + 27 * Math.cos(angle + Math.PI/2), this.screenY + 27 * Math.sin(angle + Math.PI/2), 12, "rgb(150, 150, 150)"); // hand
+        ctx.lineWidth = 1;
+
+        ctx.lineWidth = 7.5;
+        draw_circle_text(this.screenX, this.screenY, 30, "red", this.name); // the player's body
+        ctx.lineWidth = 1;  
+
+        draw_circle(this.screenX + 29 * Math.cos(angle + Math.PI/6), this.screenY + 29 * Math.sin(angle + Math.PI/6), 6, "black"); // right eye
+        draw_circle(this.screenX + 29 * Math.cos(angle - Math.PI/6), this.screenY + 29 * Math.sin(angle - Math.PI/6), 6, "black"); // left eye
     }
 }
 
@@ -145,8 +165,34 @@ class MainPlayer extends Player { // specialized player class for the local play
     display() {
         this.screenX = ctx.canvas.width / 2; // ensures player is still centered even after window resize
         this.screenY = ctx.canvas.height / 2;
-        draw_circle_text(this.screenX, this.screenY, 30, "cyan", this.name);
         draw_line(this.screenX, this.screenY, MOUSEX, MOUSEY, "black");
+        draw_circle(MOUSEX, MOUSEY, 5, "black");
+
+        let d_from_mouse = distance(this.screenX, this.screenY, MOUSEX, MOUSEY);
+        ANGLE = Math.acos((MOUSEX - this.screenX)/d_from_mouse);
+        if(MOUSEY < ctx.canvas.height/2){
+            ANGLE*=-1;
+        }
+
+        ctx.lineWidth = 15;
+        draw_line(this.screenX, this.screenY, this.screenX + 75 * Math.cos(ANGLE + Math.PI/2), this.screenY + 75 * Math.sin(ANGLE + Math.PI/2), "rgb(100, 100, 100)"); // sword shaft
+        for(let i = 14 ; i > 0; i--){
+            ctx.lineWidth = i;
+            draw_line(this.screenX, this.screenY, this.screenX + (90-i) * Math.cos(ANGLE + Math.PI/2), this.screenY + (90-i) * Math.sin(ANGLE + Math.PI/2), "rgb(100, 100, 100)"); // sword tip   
+        }
+        ctx.lineWidth = 10;
+        draw_line(this.screenX + 45 * Math.cos(ANGLE + Math.PI/2 + Math.PI/8), this.screenY + 45 * Math.sin(ANGLE + Math.PI/2 + Math.PI/8), this.screenX + 45 * Math.cos(ANGLE + Math.PI/2 - Math.PI/8), this.screenY + 45 * Math.sin(ANGLE + Math.PI/2 - Math.PI/8), "rgb(101, 67, 33)"); // cross guard of sword
+
+        ctx.lineWidth = 7.5;
+        draw_circle(this.screenX + 27 * Math.cos(ANGLE + Math.PI/2), this.screenY + 27 * Math.sin(ANGLE + Math.PI/2), 12, "rgb(150, 150, 150)"); // hand
+        ctx.lineWidth = 1;
+
+        ctx.lineWidth = 7.5;
+        draw_circle_text(this.screenX, this.screenY, 30, "cyan", this.name); // the player's body
+        ctx.lineWidth = 1;  
+
+        draw_circle(this.screenX + 29 * Math.cos(ANGLE + Math.PI/6), this.screenY + 29 * Math.sin(ANGLE + Math.PI/6), 6, "black"); // right eye
+        draw_circle(this.screenX + 29 * Math.cos(ANGLE - Math.PI/6), this.screenY + 29 * Math.sin(ANGLE - Math.PI/6), 6, "black"); // left eye
     }
 
     handle_movement() { // move 2 units in direction
@@ -206,7 +252,7 @@ function handle_server_data({ data }) {
         show_server_connected_msg(true);
     }
     PLAYERS = d; // updates local PLAYERS list with server's players list
-    // console.log(PLAYERS);
+    console.log(PLAYERS);
     server_text.innerText = "Server (" + get_players_playing() + "/" + PLAYER_CAP + "):"
 }
 
@@ -224,7 +270,7 @@ function update() { // called every frame when page is loaded
     for (let i = 0; i < PLAYERS.length; i++) { // draws all other players and handles collision with them
         if (PLAYERS[i].id != ID) {
             p = new Player(PLAYERS[i].x, PLAYERS[i].y, PLAYERS[i].name);
-            p.display();
+            p.display(PLAYERS[i].angle);
             if (PLAYING) {
                 MAINPLAYER.handle_collision(p);
             }
@@ -244,7 +290,8 @@ function update() { // called every frame when page is loaded
                 name: NAME,
                 x: MAINPLAYER.worldX,
                 y: MAINPLAYER.worldY,
-                playing: PLAYING
+                playing: PLAYING,
+                angle: ANGLE
             };
         }
         else {
@@ -288,7 +335,7 @@ function draw_rect(x, y, width, height, color) {
 function draw_circle(x, y, radius, color) {
     ctx.beginPath();
     ctx.arc(x, y, radius, 0, 2 * Math.PI, false);
-    ctx.strokeStyle = color;
+    ctx.strokeStyle = "black";
     ctx.stroke();
     ctx.fillStyle = color;
     ctx.fill();
@@ -300,7 +347,7 @@ function draw_circle_text(x, y, radius, color, name) {
     ctx.font = "bold 18px Helvetica";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(name, x, y);
+    ctx.fillText(name, x, y - 1.5 * radius);
 }
 
 function clear() {
