@@ -59,6 +59,9 @@ play_button.addEventListener("click", (e) => { // handles when player clicks pla
     if (websocket.readyState == WebSocket.OPEN) { // attempts to join if connected to server
         if (name_input.value) {
             NAME = name_input.value;
+            if(name_input.value.length > 15){ // limit name length
+                NAME = name_input.value.substring(0, 15);
+            }
         }
         else {
             NAME = "unnamed";
@@ -166,8 +169,8 @@ class MainPlayer extends Player { // specialized player class for the local play
         if(MOUSEY < ctx.canvas.height/2){
             ANGLE*=-1;
         }
-        draw_line(this.screenX, this.screenY, this.screenX + 90 * Math.cos(ANGLE), this.screenY + 90 * Math.sin(ANGLE), "black");
-        draw_circle(this.screenX + 90 * Math.cos(ANGLE), this.screenY + 90 * Math.sin(ANGLE), 5, "black");
+        // draw_line(this.screenX, this.screenY, this.screenX + 90 * Math.cos(ANGLE), this.screenY + 90 * Math.sin(ANGLE), "black");
+        // draw_circle(this.screenX + 90 * Math.cos(ANGLE), this.screenY + 90 * Math.sin(ANGLE), 5, "black");
 
         draw_sword_and_hand(this.screenX, this.screenY, ANGLE, swing_angle);
 
@@ -203,19 +206,72 @@ class MainPlayer extends Player { // specialized player class for the local play
             this.worldX = other.x + vector.x * 60;
             this.worldY = other.y + vector.y * 60;
         }
+
         //swing
-        let other_face_vector = {
+        let other_face_vector = { // vector where other is facing
             x: Math.cos(other.angle),
             y: Math.sin(other.angle)
         };
-        let between_vector = {
+        let between_vector = { // vector from other to main
             x: this.worldX - other.x,
             y: this.worldY - other.y
         };
-        let dot = other_face_vector.x * between_vector.x + other_face_vector.y * between_vector.y;
+        
+        // let sX = other.x + this.screenX - this.worldX;
+        // let sY = other.y + this.screenY - this.worldY;
+
+        let DOT = vector.x;
+        let left_tangent_angle = Math.asin(30/d) + Math.acos(DOT);
+        let right_tangent_angle = -Math.asin(30/d) + Math.acos(DOT);
+        if(other.y > this.worldY){
+            left_tangent_angle = Math.asin(30/d) - Math.acos(DOT);
+            right_tangent_angle = -Math.asin(30/d) - Math.acos(DOT);
+        }
+
+        // draw_line(this.screenX, this.screenY, sX, sY, "black");
+        // draw_line(sX, sY, sX + 90 * other_face_vector.x, sY + 90 * other_face_vector.y , "black");
+        // draw_line(sX, sY, sX + 90 * Math.cos(right_tangent_angle), sY + 90 * Math.sin(right_tangent_angle) , "black");
+        // draw_line(sX, sY, sX + 90 * Math.cos(left_tangent_angle), sY + 90 * Math.sin(left_tangent_angle) , "black");
+        
+        let dot = between_vector.x * other_face_vector.x + between_vector.y * other_face_vector.y;
+        let right_dot = Math.cos(right_tangent_angle) * other_face_vector.x + Math.sin(right_tangent_angle) * other_face_vector.y;
+        let left_dot = Math.cos(left_tangent_angle) * other_face_vector.x + Math.sin(left_tangent_angle) * other_face_vector.y;
+
+        let facing_up = other_face_vector.y < 0;
+        let other_below = other.y > this.worldY;
+        let other_right = other.x > this.worldX;
+
+        if(facing_up){
+            if(other_below && other_right){
+                dot = left_dot;
+            }
+            if(other_below && !other_right){
+                dot = right_dot;
+            }
+            if(!other_below && other_right){
+                dot = left_dot;
+            }
+            if(!other_below && !other_right){
+                dot = right_dot;
+            }
+        }
+        if(!facing_up){
+            if(other_below && other_right){
+                dot = right_dot;
+            }
+            if(other_below && !other_right){
+                dot = left_dot;
+            }
+            if(!other_below && other_right){
+                dot = right_dot;
+            }
+            if(!other_below && !other_right){
+                dot = left_dot;
+            }
+        }
 
         if (other.swinging && d < 90 + 30 && dot >= 0){
-            console.log("DO SOMETHING");
+            kill_player();
         }
     }
 

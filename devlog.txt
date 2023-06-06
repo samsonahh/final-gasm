@@ -28,3 +28,9 @@ ALL -- 2023-6-05 8:29
 - Added a drawing of what the game would look like under site map
 - Picked title: Super Smack Bros
 - Minor clarifications: Map zoom, Bootstrap reason
+
+SamsonW -- 2023-6-06 9:25
+--------------------------------------------------------------
+- Added whole boiler plate code with server and client
+- Added name length cap of 15
+- Added more accurate hit detection
