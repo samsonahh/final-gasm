@@ -126,6 +126,11 @@ class Player { // general player class for everyone
     screenY;
     name;
 
+    accleration_x = 0;
+    accleration_y = 0;
+    velocity_x = 0;
+    velocity_y = 0;
+
     constructor(wx, wy, n) {
         this.worldX = wx;
         this.worldY = wy;
@@ -188,25 +193,34 @@ class MainPlayer extends Player { // specialized player class for the local play
         draw_circle(this.screenX + 29 * Math.cos(ANGLE - Math.PI/6), this.screenY + 29 * Math.sin(ANGLE - Math.PI/6), 6, "black"); // left eye
     }
 
-    handle_movement() { // move 2 units in direction
-        // if (this.up) this.worldY -= 2;
-        // if (this.down) this.worldY += 2;
-        // if (this.left) this.worldX -= 2;
-        // if (this.right) this.worldX += 2;
-        let move_direction = { x: 0, y: 0 };
-        if (this.up) move_direction.y = -1;
-        if (this.down) move_direction.y = 1;
-        if (this.left) move_direction.x = -1;
-        if (this.right) move_direction.x = 1;
 
-        let magnitude = (Math.sqrt(move_direction.x * move_direction.x + move_direction.y * move_direction.y));
+    handle_movement() { // move 2 units in direction
+
+        let accleration_x = 0;
+        let accleration_y = 0;
+
+        let accel_direction = { x: 0, y: 0 };
+        if (this.up) accleration_y = -0.3;
+        if (this.down) accleration_y = 0.3;
+        if (this.left) accleration_x = -0.3;
+        if (this.right) accleration_x = 0.3;
+
+        this.velocity_y += accleration_y;
+        this.velocity_x += accleration_x;
+
+        let magnitude = (Math.sqrt(this.velocity_x * this.velocity_x + this.velocity_y * this.velocity_y));
         if(magnitude != 0){
-            move_direction.x = move_direction.x/magnitude;
-            move_direction.y = move_direction.y/magnitude;
+            this.velocity_x = this.velocity_x/magnitude;
+            this.velocity_y = this.velocity_y/magnitude;
         }
 
-        this.worldX += move_direction.x * SPEED;
-        this.worldY += move_direction.y * SPEED;
+        if (this.velocity_y>0) this.velocity_y += -0.1;
+        if (this.velocity_y<0) this.velocity_y += 0.1;
+        if (this.velocity_x>0) this.velocity_x += -0.1;
+        if (this.velocity_x<0) this.velocity_x += 0.1;
+
+        this.worldX += this.velocity_x * SPEED;
+        this.worldY += this.velocity_y * SPEED;
 
         if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && MOVING){
             let m = Math.sqrt(Math.pow(GOTOX - this.worldX, 2) + Math.pow(GOTOY-this.worldY, 2));
