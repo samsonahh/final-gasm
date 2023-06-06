@@ -10,7 +10,9 @@ const PLAYER_CAP = 5;
 let MAINPLAYER; // Will store our MainPlayer class. ONLY refers to the local player, not others.
 let NAME; // Name of our main player
 let ID; // ID of our main player (obtained by recieving a unique id upon initial connect)
+let LAST_HIT_ID; // ID of the last player to hit the main player
 let PLAYING = false; // Is our player on the menu/death or playing?
+let LOGGING = false; // Does the player's death need to be listed in the killfeed?
 let PLAYERS = []; // Stores all players that the server gives back
 let ANGLE = 0; // Stores local player's rotation
 
@@ -48,6 +50,7 @@ const name_input = document.getElementById("name");
 const server_dropdown = document.getElementById("servers");
 const error_msg = document.getElementById("error");
 const player_list = document.getElementById("player_list");
+const death_list = document.getElementById("death_list");
 const server_text = document.getElementById("server_text");
 const death_menu = document.getElementById("death");
 const play_death_button = document.getElementById("play_death");
@@ -189,6 +192,7 @@ class MainPlayer extends Player { // specialized player class for the local play
 
     check_bounds() { // handles if player is knocked outside
         if (this.worldY > WORLDHEIGHT + 30 || this.worldY < -30 || this.worldX > WORLDWIDTH + 30 || this.worldX < -30) {
+            console.log(PLAYERS);
             kill_player();
         }
     }
@@ -216,6 +220,7 @@ class MainPlayer extends Player { // specialized player class for the local play
 
         if (other.swinging && d < 90 + 30 && dot >= 0){
             console.log("DO SOMETHING");
+            other.last_hit_id = this.id;
         }
     }
 
@@ -264,6 +269,7 @@ function handle_server_data({ data }) {
 function start() { // called once when Play is pressed
     MAINPLAYER = new MainPlayer(Math.random() * (WORLDWIDTH - 30) + 30, Math.random() * (WORLDHEIGHT - 30) + 30, NAME); // spawn random location
     PLAYING = true;
+    LAST_HIT_ID = ID;
     SWING_DELAY_TIMER = 0;
     
     enable_controls();
@@ -272,6 +278,7 @@ function start() { // called once when Play is pressed
 function update() { // called every frame when page is loaded
     draw_background();
     update_player_list(); // updates the leaderboard
+    update_death_list(); // updates the killfeed
 
     for (let i = 0; i < PLAYERS.length; i++) { // draws all other players and handles collision with them
         if (PLAYERS[i].id != ID) {
@@ -296,18 +303,28 @@ function update() { // called every frame when page is loaded
             local_data = {
                 id: ID,
                 name: NAME,
+                last_hit_id: LAST_HIT_ID,
                 x: MAINPLAYER.worldX,
                 y: MAINPLAYER.worldY,
                 playing: PLAYING,
+                log: LOGGING,
                 angle: ANGLE,
                 swinging: SWINGING == 1 || SWINGING == 2,
                 swing_angle: get_swing_angle()
             };
         }
+        else if (LOGGING) {
+            local_data = {
+                id: ID,
+                name: NAME,
+                last_hit_id: LAST_HIT_ID,
+                log: LOGGING
+            };
+        }
         else {
             local_data = {
                 id: ID
-            };
+            }
         }
         send_local_data(local_data);
     }
@@ -429,6 +446,34 @@ function clear_player_list() { // clears the leaderboard
     }
 }
 
+function update_death_list() { // updates the killfeed
+    for (let i = 0; i < PLAYERS.length; i++) {
+        if (PLAYERS[i].log) {
+            console.log(PLAYERS);
+            console.log(PLAYERS[i]);
+            const killingplayer = find_killing_player(PLAYERS[i]);
+            const listing = death_list.appendChild(document.createElement('div'));
+            if (killingplayer.id == PLAYERS[i].id) {
+                listing.innerHTML = PLAYERS[i].name + " committed suicide";
+            } else {
+                listing.innerHTML = PLAYERS[i].name + " was killed by " + killingplayer.name;
+            }
+            listing.style.bottom = 0;
+            PLAYERS[i].log = false;
+        }
+    }
+}
+
+function find_killing_player(deadplayer) {
+    const kill_id = deadplayer.last_hit_id;
+    console.log(deadplayer.last_hit_id);
+    for (let i = 0; i < PLAYERS.length; i++) {
+        if (PLAYERS[i].id == kill_id) {
+            return PLAYERS[i];
+        }
+    }
+}
+
 function stop_movement() {
     MAINPLAYER.up = false;
     MAINPLAYER.down = false;
@@ -507,9 +552,23 @@ function kill_player() {
     LASTY = MAINPLAYER.worldY;
 
     PLAYING = false;
+    let main_id = find_main_player_index(ID);
+    console.log(main_id);
+    PLAYERS[main_id].log = true;
+    console.log("kill");
     MAINPLAYER = undefined;
+    console.log(PLAYERS);
 
     death_menu.style.display = "inline-block";
+}
+
+function find_main_player_index(given_id) {
+    let i;
+    for (i = 0; i < PLAYERS.length; i++) {
+        if (PLAYERS[i].id = given_id) {
+            return i;
+        }
+    }
 }
 
 function handle_server_disconnect() {
