@@ -42,4 +42,5 @@ SamsonW -- 2023-6-06 9:25
 - Added simple player body collision detection
 - Added name length cap of 15
 - Added more accurate hit detection
+- Added mobile friendly controls
 - Commented majority of code

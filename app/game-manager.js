@@ -30,6 +30,7 @@ var MOUSEY;
 //MOBILE
 var GOTOX;
 var GOTOY;
+let MOVING;
 
 var websocket; // Our websocket for server connection (can be changed for different server)
 
@@ -207,13 +208,18 @@ class MainPlayer extends Player { // specialized player class for the local play
         this.worldX += move_direction.x * SPEED;
         this.worldY += move_direction.y * SPEED;
 
-        if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)){
+        if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && MOVING){
             let m = Math.sqrt(Math.pow(GOTOX - this.worldX, 2) + Math.pow(GOTOY-this.worldY, 2));
-            if(m >= 0.05){
+            if(m > 1){
                 this.worldX += SPEED * (GOTOX - this.worldX)/m;
                 this.worldY += SPEED * (GOTOY - this.worldY)/m;
+                console.log(this.worldX, this.worldY);
+            }
+            else{
+                MOVING = false;
             }
         }
+
         this.check_bounds();
     }
 
@@ -306,6 +312,7 @@ class MainPlayer extends Player { // specialized player class for the local play
         if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)){
             GOTOX = e.clientX - MAINPLAYER.screenX + MAINPLAYER.worldX;
             GOTOY = e.clientY - MAINPLAYER.screenY + MAINPLAYER.worldY;
+            MOVING = true;
         }
         if(SWING_DELAY_TIMER > SWING_DELAY && SWINGING == 0){
             SWINGING = 1;
