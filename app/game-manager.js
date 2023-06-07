@@ -12,8 +12,9 @@ let NAME; // Name of our main player
 let ID; // ID of our main player (obtained by recieving a unique id upon initial connect)
 let PLAYING = false; // Is our player on the menu/death or playing?
 let PLAYERS = []; // Stores all players that the server gives back
+let HIT_CHECKER = {}; // Stores whether each player has been hit before (makes sure that it doesn't hit a player more than once). {id: true/false, ...} format 
 let ANGLE = 0; // Stores local player's rotation
-let SPEED = 2; // Speed of player
+let MAX_SPEED = 2; // Speed of player
 
 //FOR SWINGING
 let SWINGING = 0; // 0 - not swinging, 1 - swinging, 2 - unswinging
@@ -59,7 +60,7 @@ const death_menu = document.getElementById("death");
 const play_death_button = document.getElementById("play_death");
 const menu_death_button = document.getElementById("menu_death");
 
-setup_websocket("ws://samsonahh.me:8001/"); // default server to connect to upon loading page
+setup_websocket("ws://localhost:8001/"); // default server to connect to upon loading page
 
 play_button.addEventListener("click", (e) => { // handles when player clicks play on menu
     if (websocket.readyState == WebSocket.OPEN) { // attempts to join if connected to server
@@ -160,6 +161,9 @@ class MainPlayer extends Player { // specialized player class for the local play
     left = false;
     right = false;
 
+    velocity_x = 0;
+    velocity_y = 0;
+
     constructor(wx, wy, n) {
         super(wx, wy, n);
         this.screenX = ctx.canvas.width / 2; // player is always centered in the middle of the screen
@@ -188,44 +192,64 @@ class MainPlayer extends Player { // specialized player class for the local play
         draw_circle(this.screenX + 29 * Math.cos(ANGLE - Math.PI/6), this.screenY + 29 * Math.sin(ANGLE - Math.PI/6), 6, "black"); // left eye
     }
 
-    handle_movement() { // move 2 units in direction
-        // if (this.up) this.worldY -= 2;
-        // if (this.down) this.worldY += 2;
-        // if (this.left) this.worldX -= 2;
-        // if (this.right) this.worldX += 2;
-        let move_direction = { x: 0, y: 0 };
-        if (this.up) move_direction.y = -1;
-        if (this.down) move_direction.y = 1;
-        if (this.left) move_direction.x = -1;
-        if (this.right) move_direction.x = 1;
+    handle_movement() {
+        let accleration_x = 0;
+        let accleration_y = 0;
 
-        let magnitude = (Math.sqrt(move_direction.x * move_direction.x + move_direction.y * move_direction.y));
-        if(magnitude != 0){
-            move_direction.x = move_direction.x/magnitude;
-            move_direction.y = move_direction.y/magnitude;
-        }
+        //pressing arrow keys causes accleration
+        if (this.up) accleration_y = -0.3;
+        if (this.down) accleration_y = 0.3;
+        if (this.left) accleration_x = -0.3;
+        if (this.right) accleration_x = 0.3;
 
-        this.worldX += move_direction.x * SPEED;
-        this.worldY += move_direction.y * SPEED;
+        //add acceleration to velocity
+        this.velocity_y += accleration_y;
+        this.velocity_x += accleration_x;
 
-        if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && MOVING){
-            let m = Math.sqrt(Math.pow(GOTOX - this.worldX, 2) + Math.pow(GOTOY-this.worldY, 2));
-            if(m > 1){
-                this.worldX += SPEED * (GOTOX - this.worldX)/m;
-                this.worldY += SPEED * (GOTOY - this.worldY)/m;
-                console.log(this.worldX, this.worldY);
-            }
-            else{
-                MOVING = false;
-            }
-        }
+        
+        //friction on y axis
+        if(Math.abs(this.velocity_y)<0.1) this.velocity_y = 0;
+        else if (this.velocity_y>0) this.velocity_y += -0.1;
+        else if (this.velocity_y<0) this.velocity_y += 0.1;
+        
+        //friction on x axis
+        if(Math.abs(this.velocity_x)<0.1) this.velocity_x = 0;
+        if (this.velocity_x>0) this.velocity_x += -0.1;
+        if (this.velocity_x<0) this.velocity_x += 0.1;
+
+        // caps the velocity between -1 and 1
+        if(this.velocity_x > MAX_SPEED) this.velocity_x = MAX_SPEED;
+        if(this.velocity_x < -MAX_SPEED) this.velocity_x = -MAX_SPEED;
+        if(this.velocity_y > MAX_SPEED) this.velocity_y = MAX_SPEED;
+        if(this.velocity_y < -MAX_SPEED) this.velocity_y = -MAX_SPEED;
+        
+        //calculates raw magnitude of current velocity
+        let magnitude = (Math.sqrt(this.velocity_x * this.velocity_x + this.velocity_y * this.velocity_y));
+        
+        //apply the velocities to the position
+        this.worldX += this.velocity_x;
+        this.worldY += this.velocity_y;
+
+        console.log(magnitude);
+
+        // if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && MOVING){
+        //     let m = Math.sqrt(Math.pow(GOTOX - this.worldX, 2) + Math.pow(GOTOY-this.worldY, 2));
+        //     if(m > 1){
+        //         this.worldX += MAX_VELOCITY * (GOTOX - this.worldX)/m;
+        //         this.worldY += MAX_VELOCITY * (GOTOY - this.worldY)/m;
+        //         console.log(this.worldX, this.worldY);
+        //     }
+        //     else{
+        //         MOVING = false;
+        //     }
+        // }
 
         this.check_bounds();
     }
 
     check_bounds() { // handles if player is knocked outside
         if (this.worldY > WORLDHEIGHT + 30 || this.worldY < -30 || this.worldX > WORLDWIDTH + 30 || this.worldX < -30) {
-            kill_player();
+            kill_main_player();
         }
     }
 
@@ -241,13 +265,13 @@ class MainPlayer extends Player { // specialized player class for the local play
         }
 
         //swing
-        let other_face_vector = { // vector where other is facing
-            x: Math.cos(other.angle),
-            y: Math.sin(other.angle)
+        let facing_vector = { // vector where other is facing
+            x: Math.cos(ANGLE),
+            y: Math.sin(ANGLE)
         };
-        let between_vector = { // vector from other to main
-            x: this.worldX - other.x,
-            y: this.worldY - other.y
+        let between_vector = { // vector from main to other
+            x: other.x - this.worldX,
+            y: other.y - this.worldY
         };
         
         // let sX = other.x + this.screenX - this.worldX;
@@ -262,53 +286,61 @@ class MainPlayer extends Player { // specialized player class for the local play
         }
 
         // draw_line(this.screenX, this.screenY, sX, sY, "black");
-        // draw_line(sX, sY, sX + 90 * other_face_vector.x, sY + 90 * other_face_vector.y , "black");
-        // draw_line(sX, sY, sX + 90 * Math.cos(right_tangent_angle), sY + 90 * Math.sin(right_tangent_angle) , "black");
-        // draw_line(sX, sY, sX + 90 * Math.cos(left_tangent_angle), sY + 90 * Math.sin(left_tangent_angle) , "black");
+        // draw_line(this.screenX, this.screenY, this.screenX + 90 * facing_vector.x, this.screenY + 90 * facing_vector.y , "black");
+        // draw_line(this.screenX, this.screenY, this.screenX - 90 * Math.cos(right_tangent_angle), this.screenY - 90 * Math.sin(right_tangent_angle) , "black");
+        // draw_line(this.screenX, this.screenY, this.screenX - 90 * Math.cos(left_tangent_angle), this.screenY - 90 * Math.sin(left_tangent_angle) , "black");
         
-        let dot = between_vector.x * other_face_vector.x + between_vector.y * other_face_vector.y;
-        let right_dot = Math.cos(right_tangent_angle) * other_face_vector.x + Math.sin(right_tangent_angle) * other_face_vector.y;
-        let left_dot = Math.cos(left_tangent_angle) * other_face_vector.x + Math.sin(left_tangent_angle) * other_face_vector.y;
+        let dot = between_vector.x * facing_vector.x + between_vector.y * facing_vector.y;
+        let right_dot = -Math.cos(right_tangent_angle) * facing_vector.x - Math.sin(right_tangent_angle) * facing_vector.y;
+        let left_dot = -Math.cos(left_tangent_angle) * facing_vector.x - Math.sin(left_tangent_angle) * facing_vector.y;
 
-        let facing_up = other_face_vector.y < 0;
-        let other_below = other.y > this.worldY;
-        let other_right = other.x > this.worldX;
+        let facing_up = facing_vector.y < 0;
+        let below_other = other.y < this.worldY;
+        let below_right = other.x < this.worldX;
 
         if(facing_up){
-            if(other_below && other_right){
+            if(below_other && below_right){
                 dot = left_dot;
             }
-            if(other_below && !other_right){
+            if(below_other && !below_right){
                 dot = right_dot;
             }
-            if(!other_below && other_right){
+            if(!below_other && below_right){
                 dot = left_dot;
             }
-            if(!other_below && !other_right){
+            if(!below_other && !below_right){
                 dot = right_dot;
             }
         }
         if(!facing_up){
-            if(other_below && other_right){
+            if(below_other && below_right){
                 dot = right_dot;
             }
-            if(other_below && !other_right){
+            if(below_other && !below_right){
                 dot = left_dot;
             }
-            if(!other_below && other_right){
+            if(!below_other && below_right){
                 dot = right_dot;
             }
-            if(!other_below && !other_right){
+            if(!below_other && !below_right){
                 dot = left_dot;
             }
         }
 
-        if (other.swinging && d < 90 + 30 && dot >= 0){
-            kill_player();
+        if ((SWINGING == 1 || SWINGING == 2) && d < 90 + 30 && dot >= 0){
+            if(HIT_CHECKER[other.id] == false){ // ensures that player doesnt get hit more than once
+                hit_player_by_id(other.id, normalize_vector(facing_vector));
+                HIT_CHECKER[other.id] = true;
+            }
         }
     }
 
     start_swing(e){
+        HIT_CHECKER = {};
+        for(let i = 0; i < PLAYERS.length; i++){
+            HIT_CHECKER[PLAYERS[i].id] = false;
+        }
+
         if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)){
             GOTOX = e.clientX - MAINPLAYER.screenX + MAINPLAYER.worldX;
             GOTOY = e.clientY - MAINPLAYER.screenY + MAINPLAYER.worldY;
@@ -350,6 +382,12 @@ function handle_server_data({ data }) {
         ID = d.id;
         show_server_connected_msg(true);
     }
+    if(d.hasOwnProperty('victim')){
+        if(d.victim == ID && PLAYING){
+            add_force_to_main_player(d.direction);
+        }
+        return;
+    }
     PLAYERS = d; // updates local PLAYERS list with server's players list
     // console.log(PLAYERS);
     server_text.innerText = "Server (" + get_players_playing() + "/" + PLAYER_CAP + "):"
@@ -378,9 +416,8 @@ function update() { // called every frame when page is loaded
     }
 
     if (PLAYING) {
-        let swing_angle = get_swing_angle();
 
-        MAINPLAYER.display(swing_angle);
+        MAINPLAYER.display(get_swing_angle());
         MAINPLAYER.handle_movement();
     }
 
@@ -609,7 +646,7 @@ function check_keys_up(e) {
     }
 }
 
-function kill_player() {
+function kill_main_player() {
     disable_controls();
 
     LASTX = MAINPLAYER.worldX;
@@ -623,7 +660,7 @@ function kill_player() {
 
 function handle_server_disconnect() {
     if (PLAYING) {
-        kill_player();
+        kill_main_player();
         death_menu.style.display = "none";
         menu.style.display = "inline-block";
 
@@ -666,4 +703,27 @@ function get_swing_angle(){ // returns the swing angle used for animation
 
     // timer/0.25 = i/PI
     return SWING_TIMER*(Math.PI)/0.25;
+}
+
+function hit_player_by_id(victim_id, dir){
+    
+    let data = {
+        killer: ID,
+        victim: victim_id,
+        direction: dir
+    };
+    send_local_data(data);
+}
+
+function add_force_to_main_player(dir){
+    MAINPLAYER.velocity_x+= dir.x*10;
+    MAINPLAYER.velocity_y+= dir.y*10;
+}
+
+function normalize_vector(vector){
+    let mag = (Math.sqrt(vector.x * vector.x + vector.y * vector.y));
+    return {
+        x: vector.x/mag,
+        y: vector.y/mag
+    };
 }

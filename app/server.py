@@ -3,8 +3,10 @@ import websockets
 import json
 
 PLAYERS = []
+CLIENTS = set()
 
 async def handler(websocket): # all connection is handled here
+    CLIENTS.add(websocket) # adds current connection to clients list
     id_packet = { # store unique id as a single dict
         "id": str(websocket.id)
     }
@@ -20,7 +22,13 @@ async def handler(websocket): # all connection is handled here
             if data == {}: # if the client never received their id
                 print(websocket.id, "connected with an error")
                 remove_player(id_packet['id']) 
+                CLIENTS.remove(websocket)
                 break # closes the connection with the client
+
+            if 'killer' in data:
+                print(data['killer'], "hit", data['victim'])
+                broadcast(json.dumps(data))
+                continue
 
             update_players(data) # updates player data
             await websocket.send(json.dumps(PLAYERS)) # send all players' data back to client
@@ -28,7 +36,18 @@ async def handler(websocket): # all connection is handled here
         except websockets.exceptions.ConnectionClosed: # if client disconnects or communication fails with client
             remove_player(id_packet['id'])
             print(websocket.id, "disconnected")
+            CLIENTS.remove(websocket)
             break # closes the connection with the client
+
+async def send(websocket, message):
+    try:
+        await websocket.send(message)
+    except websockets.ConnectionClosed:
+        pass
+
+def broadcast(message):
+    for websocket in CLIENTS:
+        asyncio.create_task(send(websocket, message))
 
 async def main(): # initializes the server (starts once when executing this file)
     async with websockets.serve(handler, "0.0.0.0", 8001): # "0.0.0.0" refers to the machine the file is running on and 8001 is the port
