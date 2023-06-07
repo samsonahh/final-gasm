@@ -1,5 +1,3 @@
-const VERSION = 0.1; // Not implemented yet (makes sure a player is on the right version of game)
-
 const FPS = 60; // Set fixed FPS (ppl with 144 hz monitors would move faster vs ppl on 60 hz monitors)
 const INTERVAL = 1000 / FPS; // Rate at which canvas is updated in ms
 
@@ -60,7 +58,7 @@ const death_menu = document.getElementById("death");
 const play_death_button = document.getElementById("play_death");
 const menu_death_button = document.getElementById("menu_death");
 
-setup_websocket("ws://localhost:8001/"); // default server to connect to upon loading page
+setup_websocket("ws://samsonahh.me:8001/"); // default server to connect to upon loading page
 
 play_button.addEventListener("click", (e) => { // handles when player clicks play on menu
     if (websocket.readyState == WebSocket.OPEN) { // attempts to join if connected to server

@@ -26,7 +26,7 @@ async def handler(websocket): # all connection is handled here
                 break # closes the connection with the client
 
             if 'killer' in data:
-                print(data['killer'], "hit", data['victim'])
+                # print(data['killer'], "hit", data['victim'])
                 broadcast(json.dumps(data))
                 continue
 
