@@ -193,32 +193,41 @@ class MainPlayer extends Player { // specialized player class for the local play
         draw_circle(this.screenX + 29 * Math.cos(ANGLE - Math.PI/6), this.screenY + 29 * Math.sin(ANGLE - Math.PI/6), 6, "black"); // left eye
     }
 
+    clean_addition(filth, filthy){
+            let temp = (Math.round((filth + filthy)*10))/10
+            return temp
+        }
 
     handle_movement() { // move 2 units in direction
 
         let accleration_x = 0;
         let accleration_y = 0;
 
+        //pressing arrow keys causes accleration
         let accel_direction = { x: 0, y: 0 };
         if (this.up) accleration_y = -0.3;
         if (this.down) accleration_y = 0.3;
         if (this.left) accleration_x = -0.3;
         if (this.right) accleration_x = 0.3;
 
+        //add acceleration to velocity
         this.velocity_y += accleration_y;
         this.velocity_x += accleration_x;
 
+        //calculates raw magnitude of current velocity
         let magnitude = (Math.sqrt(this.velocity_x * this.velocity_x + this.velocity_y * this.velocity_y));
-        if(magnitude != 0){
-            this.velocity_x = this.velocity_x/magnitude;
-            this.velocity_y = this.velocity_y/magnitude;
-        }
 
-        if (this.velocity_y>0) this.velocity_y += -0.1;
-        if (this.velocity_y<0) this.velocity_y += 0.1;
+        //friction on y axis
+        if(Math.abs(this.velocity_y)<0.1) this.velocity_y = 0;
+        else if (this.velocity_y>0) this.velocity_y += -0.1;
+        else if (this.velocity_y<0) this.velocity_y += 0.1;
+
+        //friction on x axis
+        if(Math.abs(this.velocity_x)<0.1) this.velocity_x = 0;
         if (this.velocity_x>0) this.velocity_x += -0.1;
         if (this.velocity_x<0) this.velocity_x += 0.1;
 
+        //velocity is a portion of speed cap
         this.worldX += this.velocity_x * SPEED;
         this.worldY += this.velocity_y * SPEED;
 
