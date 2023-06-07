@@ -428,7 +428,7 @@ function update() { // called every frame when page is loaded
         show_server_connected_msg(false);
     }
 }
-setInterval(update, INTERVAL); // creates 60 FPS 2updating loop every INTERVAL = 1000/FPS = 13.333... milliseconds
+setInterval(update, INTERVAL); // creates 60 FPS by updating loop every INTERVAL = 1000/FPS = 13.333... milliseconds
 
 
 
