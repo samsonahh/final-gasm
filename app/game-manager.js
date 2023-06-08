@@ -25,11 +25,11 @@ var LASTY = WORLDHEIGHT / 2; // Camera will leave off at this y position when pl
 
 var MOUSEX; // will store mouse pos on the screen
 var MOUSEY;
-let MOVING;
 
 //MOBILE
-var GOTOX;
-var GOTOY;
+var GOTOX; // x pos to move towards
+var GOTOY; // y pos to move towards
+let MOVING; // did the player reach pressed spot?
 
 var websocket; // Our websocket for server connection (can be changed for different server)
 
@@ -72,12 +72,12 @@ play_button.addEventListener("click", (e) => { // handles when player clicks pla
             NAME = "unnamed";
         }
 
-        if (get_players_playing() >= PLAYER_CAP) {
+        if (get_players_playing() >= PLAYER_CAP) { // show lobby full msg if full
             error_msg.style.display = "inline";
             error_msg.innerHTML = "Lobby is full";
             error_msg.style.color = "red";
         }
-        else {
+        else { // otherwise join the game
             menu.style.display = "none";
             get_mouse_position(e);
             start();
@@ -90,13 +90,13 @@ play_button.addEventListener("click", (e) => { // handles when player clicks pla
 
 play_death_button.addEventListener("click", (e) => {
     if (websocket.readyState == WebSocket.OPEN && !PLAYING) { // handles when player clicks play on death menu
-        if (get_players_playing() >= PLAYER_CAP) {
+        if (get_players_playing() >= PLAYER_CAP) { // if full
             menu_death_button.dispatchEvent(new Event("click"));
             error_msg.style.display = "inline";
             error_msg.innerHTML = "Lobby is full";
             error_msg.style.color = "red";
         }
-        else {
+        else { // if not then join
             death_menu.style.display = "none";
             get_mouse_position(e);
             start();
@@ -141,7 +141,7 @@ class Player { // general player class for everyone
             this.screenY = this.worldY + ctx.canvas.height / 2 - LASTY;
         }
 
-        draw_sword_and_hand(this.screenX, this.screenY, angle, swing_angle);
+        draw_sword_and_hand(this.screenX, this.screenY, angle, swing_angle); // sword and hand
 
         ctx.lineWidth = 7.5;
         draw_circle_text(this.screenX, this.screenY, 30, "red", this.name); // the player's body
@@ -180,7 +180,7 @@ class MainPlayer extends Player { // specialized player class for the local play
         // draw_line(this.screenX, this.screenY, this.screenX + 90 * Math.cos(ANGLE), this.screenY + 90 * Math.sin(ANGLE), "black");
         // draw_circle(this.screenX + 90 * Math.cos(ANGLE), this.screenY + 90 * Math.sin(ANGLE), 5, "black");
 
-        draw_sword_and_hand(this.screenX, this.screenY, ANGLE, swing_angle);
+        draw_sword_and_hand(this.screenX, this.screenY, ANGLE, swing_angle); // draw sword and hand
 
         ctx.lineWidth = 7.5;
         draw_circle_text(this.screenX, this.screenY, 30, "cyan", this.name); // the player's body
@@ -200,7 +200,7 @@ class MainPlayer extends Player { // specialized player class for the local play
         if (this.left && this.velocity_x > -MAX_SPEED) accleration_x = -0.3;
         if (this.right && this.velocity_x < MAX_SPEED) accleration_x = 0.3;
 
-        if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && MOVING){
+        if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && MOVING){ // for mobile
             if(GOTOX - this.worldX > 0.5 && this.velocity_x < MAX_SPEED) accleration_x = 0.3;
             if(GOTOX - this.worldX < -0.5 && this.velocity_x > -MAX_SPEED) accleration_x = -0.3;
             if(GOTOY - this.worldY > 0.5 && this.velocity_y < MAX_SPEED) accleration_y = 0.3;
@@ -232,7 +232,7 @@ class MainPlayer extends Player { // specialized player class for the local play
         this.worldX += this.velocity_x;
         this.worldY += this.velocity_y;
 
-        this.check_bounds();
+        this.check_bounds(); // check if player is outside
     }
 
     check_bounds() { // handles if player is knocked outside
@@ -242,6 +242,7 @@ class MainPlayer extends Player { // specialized player class for the local play
     }
 
     handle_collision(other) {
+        // for regular body collision
         let d = distance(other.x, other.y, this.worldX, this.worldY);
         let vector = {
             x: (this.worldX - other.x) / d,
@@ -252,7 +253,7 @@ class MainPlayer extends Player { // specialized player class for the local play
             this.worldY = other.y + vector.y * 60;
         }
 
-        //swing
+        // swing
         let facing_vector = { // vector where other is facing
             x: Math.cos(ANGLE),
             y: Math.sin(ANGLE)
@@ -287,54 +288,39 @@ class MainPlayer extends Player { // specialized player class for the local play
         let below_right = other.x < this.worldX;
 
         if(facing_up){
-            if(below_other && below_right){
-                dot = left_dot;
-            }
-            if(below_other && !below_right){
-                dot = right_dot;
-            }
-            if(!below_other && below_right){
-                dot = left_dot;
-            }
-            if(!below_other && !below_right){
-                dot = right_dot;
-            }
+            if(below_other && below_right) dot = left_dot;
+            if(below_other && !below_right) dot = right_dot;
+            if(!below_other && below_right) dot = left_dot;
+            if(!below_other && !below_right) dot = right_dot;
         }
         if(!facing_up){
-            if(below_other && below_right){
-                dot = right_dot;
-            }
-            if(below_other && !below_right){
-                dot = left_dot;
-            }
-            if(!below_other && below_right){
-                dot = right_dot;
-            }
-            if(!below_other && !below_right){
-                dot = left_dot;
-            }
+            if(below_other && below_right) dot = right_dot;
+            if(below_other && !below_right) dot = left_dot;
+            if(!below_other && below_right) dot = right_dot;
+            if(!below_other && !below_right) dot = left_dot;
         }
 
-        if ((SWINGING == 1 || SWINGING == 2) && d < 90 + 30 && dot >= 0){
+        if ((SWINGING == 1 || SWINGING == 2) && d < 90 + 30 && dot >= 0){ // if main player is swinging close enough and at the right direction to the other player
             if(HIT_CHECKER[other.id] == false){ // ensures that player doesnt get hit more than once
                 console.log(NAME + " hit " + other.name);
                 hit_player_by_id(other.id, normalize_vector(facing_vector));
-                HIT_CHECKER[other.id] = true;
+                HIT_CHECKER[other.id] = true; // prevents second hit
             }
         }
     }
 
     start_swing(e){
-        if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)){
+        if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)){ // for mobile
             GOTOX = e.clientX - MAINPLAYER.screenX + MAINPLAYER.worldX;
             GOTOY = e.clientY - MAINPLAYER.screenY + MAINPLAYER.worldY;
             MOVING = true;
         }
-        if(SWING_DELAY_TIMER > SWING_DELAY && SWINGING == 0){
+        if(SWING_DELAY_TIMER > SWING_DELAY && SWINGING == 0){ // if you are off swing cooldown and not already swinging
             SWINGING = 1;
             SWING_TIMER = 0;
             SWING_DELAY_TIMER = 0;
 
+            // allow all other players to be hit by you
             HIT_CHECKER = {};
             for(let i = 0; i < PLAYERS.length; i++){
                 HIT_CHECKER[PLAYERS[i].id] = false;
@@ -367,11 +353,12 @@ function setup_websocket(address) { // websockets connects to the specified addr
 
 function handle_server_data({ data }) {
     d = JSON.parse(data);
-    if (d.hasOwnProperty("id") && Object.keys(d).length == 1) { // if server sends back only a player id then store that as your new ID
+    if (d.hasOwnProperty("id") && Object.keys(d).length == 1) { // when server tells you your id upon connect
         ID = d.id;
         show_server_connected_msg(true);
     }
-    if(d.hasOwnProperty('victim')){
+
+    if(d.hasOwnProperty('victim')){ // when server tells you that someone was hit
         if(d.victim == ID && PLAYING){
             let killer = PLAYERS.find(player => player.id == d.killer);
             console.log("You were hit by " + killer.name);
@@ -379,6 +366,13 @@ function handle_server_data({ data }) {
         }
         return;
     }
+
+    if(d.hasOwnProperty('death')){ // when server tells you that someone dies
+        console.log("Death packet:", d);
+        // DO SOMETHING
+        return;
+    }
+
     PLAYERS = d; // updates local PLAYERS list with server's players list
     // console.log(PLAYERS);
     server_text.innerText = "Server (" + get_players_playing() + "/" + PLAYER_CAP + "):"
@@ -407,7 +401,6 @@ function update() { // called every frame when page is loaded
     }
 
     if (PLAYING) {
-
         MAINPLAYER.display(get_swing_angle());
         MAINPLAYER.handle_movement();
     }
@@ -637,7 +630,15 @@ function check_keys_up(e) {
     }
 }
 
-function kill_main_player() {
+function kill_main_player() { // kills main player and sends death packet to server
+    let data = {
+        death: {
+            victim: ID, // main player is victim
+            killer: "killer" // whoever the tracked killer is 
+        }
+    };
+    send_local_data(data);
+
     disable_controls();
 
     LASTX = MAINPLAYER.worldX;
@@ -697,7 +698,6 @@ function get_swing_angle(){ // returns the swing angle used for animation
 }
 
 function hit_player_by_id(victim_id, dir){
-    
     let data = {
         killer: ID,
         victim: victim_id,

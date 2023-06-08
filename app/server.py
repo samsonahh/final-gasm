@@ -19,19 +19,33 @@ async def handler(websocket): # all connection is handled here
             message = await websocket.recv() # grab the client's player position (string)
             data = json.loads(message) # turn the string into a dictionary
 
-            if data == {}: # if the client never received their id
+            if data == {} or (type(data) is not dict): # if the client never received their id
                 print(websocket.id, "connected with an error")
                 remove_player(id_packet['id']) 
                 CLIENTS.remove(websocket)
                 break # closes the connection with the client
 
-            if 'killer' in data:
+            if 'killer' in data.keys(): # if client sends a hit packet
                 # print(data['killer'], "hit", data['victim'])
                 broadcast(json.dumps(data))
                 continue
 
-            update_players(data) # updates player data
-            await websocket.send(json.dumps(PLAYERS)) # send all players' data back to client
+            if 'death' in data.keys(): # if client sends a death packet
+                print(data['death']['killer'], "killed", data['death']['victim'])
+                broadcast(json.dumps(data))
+                continue
+
+            if 'id' in data.keys(): # if regular data packet
+                update_players(data) # updates player data
+                await websocket.send(json.dumps(PLAYERS)) # send all players' data back to client
+                continue
+            
+            # if not valid packet then kick player (budget anticheat)
+            print("Kicked", id_packet['id'], "for invalid packet")
+            remove_player(id_packet['id'])
+            CLIENTS.remove(websocket)
+            break
+
 
         except websockets.exceptions.ConnectionClosed: # if client disconnects or communication fails with client
             remove_player(id_packet['id'])
