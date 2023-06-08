@@ -55,3 +55,7 @@ SamsonW -- 2023-6-07 18:32
 --------------------------------------------------------------
 - added client side hitting
 - added server registering client hit
+
+GitaeP -- 2023-6-08 19:56
+--------------------------------------------------------------
+- updated front-end work
