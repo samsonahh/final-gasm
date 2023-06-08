@@ -66,4 +66,5 @@ def remove_player(id):
             break
 
 if __name__ == "__main__":
+    print("Server started: Waiting for connections")
     asyncio.run(main())

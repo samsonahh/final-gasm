@@ -25,11 +25,11 @@ var LASTY = WORLDHEIGHT / 2; // Camera will leave off at this y position when pl
 
 var MOUSEX; // will store mouse pos on the screen
 var MOUSEY;
+let MOVING;
 
 //MOBILE
 var GOTOX;
 var GOTOY;
-let MOVING;
 
 var websocket; // Our websocket for server connection (can be changed for different server)
 
@@ -200,6 +200,17 @@ class MainPlayer extends Player { // specialized player class for the local play
         if (this.left && this.velocity_x > -MAX_SPEED) accleration_x = -0.3;
         if (this.right && this.velocity_x < MAX_SPEED) accleration_x = 0.3;
 
+        if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && MOVING){
+            if(GOTOX - this.worldX > 0.5 && this.velocity_x < MAX_SPEED) accleration_x = 0.3;
+            if(GOTOX - this.worldX < -0.5 && this.velocity_x > -MAX_SPEED) accleration_x = -0.3;
+            if(GOTOY - this.worldY > 0.5 && this.velocity_y < MAX_SPEED) accleration_y = 0.3;
+            if(GOTOY - this.worldY < -0.5 && this.velocity_y > -MAX_SPEED) accleration_y = -0.3;
+            let dist = distance(GOTOX, GOTOY, this.worldX, this.worldY);
+            if(dist < 1){
+                MOVING = false;
+            }
+        }
+
         //add acceleration to velocity
         this.velocity_y += accleration_y;
         this.velocity_x += accleration_x;
@@ -215,23 +226,11 @@ class MainPlayer extends Player { // specialized player class for the local play
         if (this.velocity_x<0) this.velocity_x += 0.1;
 
         let m = Math.sqrt(this.velocity_x * this.velocity_x + this.velocity_y * this.velocity_y);
-        console.log(m);
+        // console.log(m);
 
         //apply the velocities to the position
         this.worldX += this.velocity_x;
         this.worldY += this.velocity_y;
-
-        // if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && MOVING){
-        //     let m = Math.sqrt(Math.pow(GOTOX - this.worldX, 2) + Math.pow(GOTOY-this.worldY, 2));
-        //     if(m > 1){
-        //         this.worldX += MAX_VELOCITY * (GOTOX - this.worldX)/m;
-        //         this.worldY += MAX_VELOCITY * (GOTOY - this.worldY)/m;
-        //         console.log(this.worldX, this.worldY);
-        //     }
-        //     else{
-        //         MOVING = false;
-        //     }
-        // }
 
         this.check_bounds();
     }
