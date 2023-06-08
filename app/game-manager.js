@@ -194,13 +194,11 @@ class MainPlayer extends Player { // specialized player class for the local play
         let accleration_x = 0;
         let accleration_y = 0;
 
-        let moving = this.up || this.down || this.left || this.right;
-
-        //pressing arrow keys causes accleration
-        if (this.up) accleration_y = -0.3;
-        if (this.down) accleration_y = 0.3;
-        if (this.left) accleration_x = -0.3;
-        if (this.right) accleration_x = 0.3;
+        //pressing arrow keys causes accleration if not at max speed
+        if (this.up && this.velocity_y > -MAX_SPEED) accleration_y = -0.3;
+        if (this.down && this.velocity_y < MAX_SPEED) accleration_y = 0.3;
+        if (this.left && this.velocity_x > -MAX_SPEED) accleration_x = -0.3;
+        if (this.right && this.velocity_x < MAX_SPEED) accleration_x = 0.3;
 
         //add acceleration to velocity
         this.velocity_y += accleration_y;
@@ -208,22 +206,17 @@ class MainPlayer extends Player { // specialized player class for the local play
 
         //friction on y axis
         if(Math.abs(this.velocity_y)<0.1) this.velocity_y = 0;
-        else if (this.velocity_y>0) this.velocity_y += -0.1;
-        else if (this.velocity_y<0) this.velocity_y += 0.1;
+        if (this.velocity_y>0) this.velocity_y += -0.1;
+        if (this.velocity_y<0) this.velocity_y += 0.1;
         
         //friction on x axis
         if(Math.abs(this.velocity_x)<0.1) this.velocity_x = 0;
         if (this.velocity_x>0) this.velocity_x += -0.1;
         if (this.velocity_x<0) this.velocity_x += 0.1;
 
-        // caps the velocity to MAXSPEED
-        if(moving){
-            if(this.velocity_x > MAX_SPEED) this.velocity_x = MAX_SPEED;
-            if(this.velocity_x < -MAX_SPEED) this.velocity_x = -MAX_SPEED;
-            if(this.velocity_y > MAX_SPEED) this.velocity_y = MAX_SPEED;
-            if(this.velocity_y < -MAX_SPEED) this.velocity_y = -MAX_SPEED;
-        }
-        
+        let m = Math.sqrt(this.velocity_x * this.velocity_x + this.velocity_y * this.velocity_y);
+        console.log(m);
+
         //apply the velocities to the position
         this.worldX += this.velocity_x;
         this.worldY += this.velocity_y;
@@ -509,8 +502,8 @@ function draw_background() {
     draw_rect(sX, sY, WORLDWIDTH, WORLDHEIGHT, "black");
     ctx.lineWidth = 1;
 
-    for (let i = 0; i < WORLDWIDTH; i += 25) {
-        for (let j = 0; j < WORLDHEIGHT; j += 25) {
+    for (let i = 0; i < WORLDWIDTH; i += 50) {
+        for (let j = 0; j < WORLDHEIGHT; j += 50) {
             draw_line(i + sX, sY, i + sX, sY + WORLDHEIGHT, "gray");
             draw_line(sX, j + sY, sX + WORLDWIDTH, j + sY, "gray");
         }
@@ -715,8 +708,8 @@ function hit_player_by_id(victim_id, dir){
 }
 
 function add_force_to_main_player(dir){
-    MAINPLAYER.velocity_x+= dir.x*7.5;
-    MAINPLAYER.velocity_y+= dir.y*7.5;
+    MAINPLAYER.velocity_x+= dir.x*12.5;
+    MAINPLAYER.velocity_y+= dir.y*12.5;
 }
 
 function normalize_vector(vector){
