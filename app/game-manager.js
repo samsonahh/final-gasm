@@ -194,6 +194,8 @@ class MainPlayer extends Player { // specialized player class for the local play
         let accleration_x = 0;
         let accleration_y = 0;
 
+        let moving = this.up || this.down || this.left || this.right;
+
         //pressing arrow keys causes accleration
         if (this.up) accleration_y = -0.3;
         if (this.down) accleration_y = 0.3;
@@ -204,7 +206,6 @@ class MainPlayer extends Player { // specialized player class for the local play
         this.velocity_y += accleration_y;
         this.velocity_x += accleration_x;
 
-        
         //friction on y axis
         if(Math.abs(this.velocity_y)<0.1) this.velocity_y = 0;
         else if (this.velocity_y>0) this.velocity_y += -0.1;
@@ -215,20 +216,17 @@ class MainPlayer extends Player { // specialized player class for the local play
         if (this.velocity_x>0) this.velocity_x += -0.1;
         if (this.velocity_x<0) this.velocity_x += 0.1;
 
-        // caps the velocity between -1 and 1
-        if(this.velocity_x > MAX_SPEED) this.velocity_x = MAX_SPEED;
-        if(this.velocity_x < -MAX_SPEED) this.velocity_x = -MAX_SPEED;
-        if(this.velocity_y > MAX_SPEED) this.velocity_y = MAX_SPEED;
-        if(this.velocity_y < -MAX_SPEED) this.velocity_y = -MAX_SPEED;
-        
-        //calculates raw magnitude of current velocity
-        let magnitude = (Math.sqrt(this.velocity_x * this.velocity_x + this.velocity_y * this.velocity_y));
+        // caps the velocity to MAXSPEED
+        if(moving){
+            if(this.velocity_x > MAX_SPEED) this.velocity_x = MAX_SPEED;
+            if(this.velocity_x < -MAX_SPEED) this.velocity_x = -MAX_SPEED;
+            if(this.velocity_y > MAX_SPEED) this.velocity_y = MAX_SPEED;
+            if(this.velocity_y < -MAX_SPEED) this.velocity_y = -MAX_SPEED;
+        }
         
         //apply the velocities to the position
         this.worldX += this.velocity_x;
         this.worldY += this.velocity_y;
-
-        console.log(magnitude);
 
         // if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && MOVING){
         //     let m = Math.sqrt(Math.pow(GOTOX - this.worldX, 2) + Math.pow(GOTOY-this.worldY, 2));
@@ -327,6 +325,7 @@ class MainPlayer extends Player { // specialized player class for the local play
 
         if ((SWINGING == 1 || SWINGING == 2) && d < 90 + 30 && dot >= 0){
             if(HIT_CHECKER[other.id] == false){ // ensures that player doesnt get hit more than once
+                console.log(NAME + " hit " + other.name);
                 hit_player_by_id(other.id, normalize_vector(facing_vector));
                 HIT_CHECKER[other.id] = true;
             }
@@ -334,11 +333,6 @@ class MainPlayer extends Player { // specialized player class for the local play
     }
 
     start_swing(e){
-        HIT_CHECKER = {};
-        for(let i = 0; i < PLAYERS.length; i++){
-            HIT_CHECKER[PLAYERS[i].id] = false;
-        }
-
         if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)){
             GOTOX = e.clientX - MAINPLAYER.screenX + MAINPLAYER.worldX;
             GOTOY = e.clientY - MAINPLAYER.screenY + MAINPLAYER.worldY;
@@ -348,6 +342,11 @@ class MainPlayer extends Player { // specialized player class for the local play
             SWINGING = 1;
             SWING_TIMER = 0;
             SWING_DELAY_TIMER = 0;
+
+            HIT_CHECKER = {};
+            for(let i = 0; i < PLAYERS.length; i++){
+                HIT_CHECKER[PLAYERS[i].id] = false;
+            }
         }
     }
 }
@@ -382,6 +381,8 @@ function handle_server_data({ data }) {
     }
     if(d.hasOwnProperty('victim')){
         if(d.victim == ID && PLAYING){
+            let killer = PLAYERS.find(player => player.id == d.killer);
+            console.log("You were hit by " + killer.name);
             add_force_to_main_player(d.direction);
         }
         return;
@@ -714,8 +715,8 @@ function hit_player_by_id(victim_id, dir){
 }
 
 function add_force_to_main_player(dir){
-    MAINPLAYER.velocity_x+= dir.x*10;
-    MAINPLAYER.velocity_y+= dir.y*10;
+    MAINPLAYER.velocity_x+= dir.x*7.5;
+    MAINPLAYER.velocity_y+= dir.y*7.5;
 }
 
 function normalize_vector(vector){
