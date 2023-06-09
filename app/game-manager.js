@@ -363,11 +363,10 @@ function handle_server_data({ data }) {
         show_server_connected_msg(true);
     }
 
-    if(d.hasOwnProperty('victim')){ // when server tells you that you were hit
-        if(d.victim == ID && PLAYING){
+    if(d.hasOwnProperty('victim')){ // when serevr tells you that someone was hit
+        if(d.victim == ID && PLAYING){ // when server tells you that you were hit
             let killer = PLAYERS.find(player => player.id == d.killer);
-            console.log(killer);
-            console.log("You were hit by " + killer.name);
+            LAST_HIT_ID = d.killer;
             add_force_to_main_player(d.direction);
         }
         return;
@@ -386,7 +385,6 @@ function start() { // called once when Play is pressed
     PLAYING = true;
     SWING_DELAY_TIMER = 0;
     LAST_HIT_ID = ID;
-    LAST_HIT_NAME = NAME;
     enable_controls();
 }
 
@@ -426,7 +424,8 @@ function update() { // called every frame when page is loaded
         }
         else {
             local_data = {
-                id: ID
+                id: ID,
+                name: NAME
             };
         }
         send_local_data(local_data);
@@ -542,12 +541,12 @@ function show_server_connected_msg(is_connected) {
 function update_killfeed(death_packet) { // updates the killfeed
     let killer = PLAYERS.find(player => player.id == death_packet.death.killer);
     let victim = PLAYERS.find(player => player.id == death_packet.death.victim);
-    console.log(killer, victim);
+    console.log("killer", killer, "victim", victim);
     const feed = death_list.appendChild(document.createElement('div'));
-    if (killer == victim) {
-        feed.innerHTML =  victim.name + " committed suicide";
+    if (death_packet.death.killer == death_packet.death.victim) {
+        feed.innerHTML = victim.name + " committed suicide";
     } else {
-        feed.innerHTML =  victim.name + " was killed by " + killer.name;
+        feed.innerHTML =  victim.name + " was eliminated by " + killer.name;
     }
 }
 
