@@ -9,7 +9,6 @@ let MAINPLAYER; // Will store our MainPlayer class. ONLY refers to the local pla
 let NAME; // Name of our main player
 let ID; // ID of our main player (obtained by recieving a unique id upon initial connect)
 let LAST_HIT_ID; // ID of the last player to hit the main player (defaults to the main player's id)
-let LAST_HIT_NAME; // the name of the last player who hit you (defaults to your name)
 let PLAYING = false; // Is our player on the menu/death or playing?
 let PLAYERS = []; // Stores all players that the server gives back
 let HIT_CHECKER = {}; // Stores whether each player has been hit before (makes sure that it doesn't hit a player more than once). {id: true/false, ...} format 
@@ -419,8 +418,7 @@ function update() { // called every frame when page is loaded
                 x: MAINPLAYER.worldX,
                 y: MAINPLAYER.worldY,
                 playing: PLAYING,
-                killer: LAST_HIT_ID,
-                killer_name: LAST_HIT_NAME,
+                last_hit_id: LAST_HIT_ID,
                 angle: ANGLE,
                 swinging: SWINGING == 1 || SWINGING == 2,
                 swing_angle: get_swing_angle()
@@ -542,15 +540,14 @@ function show_server_connected_msg(is_connected) {
 }
 
 function update_killfeed(death_packet) { // updates the killfeed
-    let killer = death_packet.death.killer;
-    let killer_name = death_packet.death.killer_name;
-    let victim = death_packet.death.victim;
-    let victim_name = death_packet.death.victim_name;
+    let killer = PLAYERS.find(player => player.id == death_packet.death.killer);
+    let victim = PLAYERS.find(player => player.id == death_packet.death.victim);
+    console.log(killer, victim);
     const feed = death_list.appendChild(document.createElement('div'));
     if (killer == victim) {
-        feed.innerHTML =  victim_name + " committed suicide";
+        feed.innerHTML =  victim.name + " committed suicide";
     } else {
-        feed.innerHTML =  victim_name + " was killed by " + killer_name;
+        feed.innerHTML =  victim.name + " was killed by " + killer.name;
     }
 }
 
@@ -654,9 +651,7 @@ function kill_main_player() { // kills main player and sends death packet to ser
     let data = {
         death: {
             victim: ID, // main player is victim
-            victim_name: NAME,
             killer: LAST_HIT_ID, // whoever the tracked killer is
-            killer_name: LAST_HIT_NAME,
         }
     };
     send_local_data(data);
