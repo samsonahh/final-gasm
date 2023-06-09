@@ -8,6 +8,8 @@ const PLAYER_CAP = 5;
 let MAINPLAYER; // Will store our MainPlayer class. ONLY refers to the local player, not others.
 let NAME; // Name of our main player
 let ID; // ID of our main player (obtained by recieving a unique id upon initial connect)
+let LAST_HIT_ID; // ID of the last player to hit the main player (defaults to the main player's id)
+let LAST_HIT_NAME; // the name of the last player who hit you (defaults to your name)
 let PLAYING = false; // Is our player on the menu/death or playing?
 let PLAYERS = []; // Stores all players that the server gives back
 let HIT_CHECKER = {}; // Stores whether each player has been hit before (makes sure that it doesn't hit a player more than once). {id: true/false, ...} format 
@@ -51,8 +53,10 @@ const menu = document.getElementById("menu");
 const play_button = document.getElementById("play");
 const name_input = document.getElementById("name");
 const server_dropdown = document.getElementById("servers");
+document.getElementById("servers")[0].setAttribute('selected', 'selected');
 const error_msg = document.getElementById("error");
 const player_list = document.getElementById("player_list");
+const death_list = document.getElementById("death_list");
 const server_text = document.getElementById("server_text");
 const death_menu = document.getElementById("death");
 const play_death_button = document.getElementById("play_death");
@@ -303,6 +307,8 @@ class MainPlayer extends Player { // specialized player class for the local play
         if ((SWINGING == 1 || SWINGING == 2) && d < 90 + 30 && dot >= 0){ // if main player is swinging close enough and at the right direction to the other player
             if(HIT_CHECKER[other.id] == false){ // ensures that player doesnt get hit more than once
                 console.log(NAME + " hit " + other.name);
+                other.LAST_HIT_ID = ID;
+                other.LAST_HIT_NAME = NAME;
                 hit_player_by_id(other.id, normalize_vector(facing_vector));
                 HIT_CHECKER[other.id] = true; // prevents second hit
             }
@@ -358,9 +364,10 @@ function handle_server_data({ data }) {
         show_server_connected_msg(true);
     }
 
-    if(d.hasOwnProperty('victim')){ // when server tells you that someone was hit
+    if(d.hasOwnProperty('victim')){ // when server tells you that you were hit
         if(d.victim == ID && PLAYING){
             let killer = PLAYERS.find(player => player.id == d.killer);
+            console.log(killer);
             console.log("You were hit by " + killer.name);
             add_force_to_main_player(d.direction);
         }
@@ -368,13 +375,10 @@ function handle_server_data({ data }) {
     }
 
     if(d.hasOwnProperty('death')){ // when server tells you that someone dies
-        console.log("Death packet:", d);
-        // DO SOMETHING
+        update_killfeed(d);
         return;
     }
-
     PLAYERS = d; // updates local PLAYERS list with server's players list
-    // console.log(PLAYERS);
     server_text.innerText = "Server (" + get_players_playing() + "/" + PLAYER_CAP + "):"
 }
 
@@ -382,7 +386,8 @@ function start() { // called once when Play is pressed
     MAINPLAYER = new MainPlayer(Math.random() * (WORLDWIDTH - 30) + 30, Math.random() * (WORLDHEIGHT - 30) + 30, NAME); // spawn random location
     PLAYING = true;
     SWING_DELAY_TIMER = 0;
-    
+    LAST_HIT_ID = ID;
+    LAST_HIT_NAME = NAME;
     enable_controls();
 }
 
@@ -414,6 +419,8 @@ function update() { // called every frame when page is loaded
                 x: MAINPLAYER.worldX,
                 y: MAINPLAYER.worldY,
                 playing: PLAYING,
+                killer: LAST_HIT_ID,
+                killer_name: LAST_HIT_NAME,
                 angle: ANGLE,
                 swinging: SWINGING == 1 || SWINGING == 2,
                 swing_angle: get_swing_angle()
@@ -534,6 +541,19 @@ function show_server_connected_msg(is_connected) {
     }
 }
 
+function update_killfeed(death_packet) { // updates the killfeed
+    let killer = death_packet.death.killer;
+    let killer_name = death_packet.death.killer_name;
+    let victim = death_packet.death.victim;
+    let victim_name = death_packet.death.victim_name;
+    const feed = death_list.appendChild(document.createElement('div'));
+    if (killer == victim) {
+        feed.innerHTML =  victim_name + " committed suicide";
+    } else {
+        feed.innerHTML =  victim_name + " was killed by " + killer_name;
+    }
+}
+
 function update_player_list() { // updates the leaderboard
     clear_player_list();
     var position = 1;
@@ -634,7 +654,9 @@ function kill_main_player() { // kills main player and sends death packet to ser
     let data = {
         death: {
             victim: ID, // main player is victim
-            killer: "killer" // whoever the tracked killer is 
+            victim_name: NAME,
+            killer: LAST_HIT_ID, // whoever the tracked killer is
+            killer_name: LAST_HIT_NAME,
         }
     };
     send_local_data(data);
