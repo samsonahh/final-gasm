@@ -714,6 +714,8 @@ function kill_main_player() { // kills main player and sends death packet to ser
 
     disable_controls();
     
+    clear_death_menu();
+
     let killer = PLAYERS.find(player => player.id == LAST_HIT_ID);
     const murderer = killing_player.appendChild(document.createElement('div'));
     const scored = scoring.appendChild(document.createElement('div'));
@@ -731,6 +733,23 @@ function kill_main_player() { // kills main player and sends death packet to ser
     MAINPLAYER = undefined;
 
     death_menu.style.display = "inline-block";
+}
+
+function clear_death_menu() {
+    children = []
+    for (let i = 0; i < killing_player.childNodes.length; i++) {
+        children[i] = killing_player.childNodes[i];
+    }
+    for (let i = 0; i < children.length; i++) {
+        children[i].remove();
+    }
+    children2 = []
+    for (let i = 0; i < scoring.childNodes.length; i++) {
+        children2[i] = scoring.childNodes[i];
+    }
+    for (let i = 0; i < children2.length; i++) {
+        children2[i].remove();
+    }
 }
 
 function handle_server_disconnect() {
