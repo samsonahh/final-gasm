@@ -208,23 +208,20 @@ class MainPlayer extends Player { // specialized player class for the local play
         //speed limit for vertical and horzontal vectors for diagonal movement
         if(diagonal == true){
             if (((this.up && this.left) || (this.up && this.right)) && this.velocity_y > -MAX_SPEED_D){
-                //diagonal = true;
-                accleration_y = -0.3; console.log("up");
+                accleration_y = -0.3; 
+                //console.log("up");
             }
-            //console.log("checked up");
             if (((this.down && this.left) || (this.down && this.right)) && this.velocity_y < MAX_SPEED_D){
-                //diagonal = true;
-                accleration_y = 0.3; console.log("down");
+                accleration_y = 0.3; 
+                //console.log("down");
             }
-            //console.log("checked down");
             if (((this.down && this.right) || (this.up && this.right)) && this.velocity_x < MAX_SPEED_D){
-                //diagonal = true;
-                accleration_x = 0.3; console.log("right");
+                accleration_x = 0.3; 
+                //console.log("right");
             }
-            //console.log("checked right");
             if (((this.down && this.left) || (this.up && this.left)) && this.velocity_x > -MAX_SPEED_D){
-                //diagonal = true;
-                accleration_x = -0.3; console.log("left");
+                accleration_x = -0.3; 
+                //console.log("left");
             }
         }
 
@@ -234,8 +231,9 @@ class MainPlayer extends Player { // specialized player class for the local play
         if (this.left && this.velocity_x > -MAX_SPEED && diagonal == false) accleration_x = -0.3;
         if (this.right && this.velocity_x < MAX_SPEED && diagonal == false) accleration_x = 0.3;
 
-        let m = Math.sqrt(this.velocity_x * this.velocity_x + this.velocity_y * this.velocity_y);
-        console.log(m);
+        //Check current player speed (for debugging purposes)
+        //let m = Math.sqrt(this.velocity_x * this.velocity_x + this.velocity_y * this.velocity_y);
+        //console.log(m);
         
 
         if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && MOVING){ // for mobile
