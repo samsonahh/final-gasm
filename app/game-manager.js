@@ -194,11 +194,49 @@ class MainPlayer extends Player { // specialized player class for the local play
         let accleration_x = 0;
         let accleration_y = 0;
 
-        //pressing arrow keys causes accleration if not at max speed
-        if (this.up && this.velocity_y > -MAX_SPEED) accleration_y = -0.3;
-        if (this.down && this.velocity_y < MAX_SPEED) accleration_y = 0.3;
-        if (this.left && this.velocity_x > -MAX_SPEED) accleration_x = -0.3;
-        if (this.right && this.velocity_x < MAX_SPEED) accleration_x = 0.3;
+        //diagonal max speed
+        let MAX_SPEED_D = MAX_SPEED/1.414;
+        let diagonal = false;
+
+        //pressing wasd keys causes accleration if not at max speed
+        
+        //detect diagonal movement
+        if((this.up && this.left) || (this.up && this.right) || (this.down && this.left) || (this.down && this.right) || (this.down && this.right) || (this.up && this.right) || (this.down && this.left) || (this.up && this.left)){
+            diagonal = true;
+        }
+
+        //speed limit for vertical and horzontal vectors for diagonal movement
+        if(diagonal == true){
+            if (((this.up && this.left) || (this.up && this.right)) && this.velocity_y > -MAX_SPEED_D){
+                //diagonal = true;
+                accleration_y = -0.3; console.log("up");
+            }
+            //console.log("checked up");
+            if (((this.down && this.left) || (this.down && this.right)) && this.velocity_y < MAX_SPEED_D){
+                //diagonal = true;
+                accleration_y = 0.3; console.log("down");
+            }
+            //console.log("checked down");
+            if (((this.down && this.right) || (this.up && this.right)) && this.velocity_x < MAX_SPEED_D){
+                //diagonal = true;
+                accleration_x = 0.3; console.log("right");
+            }
+            //console.log("checked right");
+            if (((this.down && this.left) || (this.up && this.left)) && this.velocity_x > -MAX_SPEED_D){
+                //diagonal = true;
+                accleration_x = -0.3; console.log("left");
+            }
+        }
+
+        //speed limit for non-diagonal movement
+        if (this.up && this.velocity_y > -MAX_SPEED && diagonal == false) accleration_y = -0.3;
+        if (this.down && this.velocity_y < MAX_SPEED && diagonal == false) accleration_y = 0.3;
+        if (this.left && this.velocity_x > -MAX_SPEED && diagonal == false) accleration_x = -0.3;
+        if (this.right && this.velocity_x < MAX_SPEED && diagonal == false) accleration_x = 0.3;
+
+        let m = Math.sqrt(this.velocity_x * this.velocity_x + this.velocity_y * this.velocity_y);
+        console.log(m);
+        
 
         if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && MOVING){ // for mobile
             if(GOTOX - this.worldX > 0.5 && this.velocity_x < MAX_SPEED) accleration_x = 0.3;
@@ -224,9 +262,6 @@ class MainPlayer extends Player { // specialized player class for the local play
         if(Math.abs(this.velocity_x)<0.1) this.velocity_x = 0;
         if (this.velocity_x>0) this.velocity_x += -0.1;
         if (this.velocity_x<0) this.velocity_x += 0.1;
-
-        let m = Math.sqrt(this.velocity_x * this.velocity_x + this.velocity_y * this.velocity_y);
-        // console.log(m);
 
         //apply the velocities to the position
         this.worldX += this.velocity_x;
