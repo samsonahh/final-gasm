@@ -70,3 +70,7 @@ GitaeP -- 2023-6-08 19:56
 MatthewY -- 2023-6-12 13:06
 --------------------------------------------------------------
 - Normalized player speed for diagonal movement to be the same as perpendicular movement
+
+VivianG -- 2023-6-12 13:35
+--------------------------------------------------------------
+- Implemented scoring
