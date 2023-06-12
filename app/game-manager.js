@@ -9,6 +9,7 @@ let MAINPLAYER; // Will store our MainPlayer class. ONLY refers to the local pla
 let NAME; // Name of our main player
 let ID; // ID of our main player (obtained by recieving a unique id upon initial connect)
 let LAST_HIT_ID; // ID of the last player to hit the main player (defaults to the main player's id)
+let SCORE; // the score that the main player has achieved
 let PLAYING = false; // Is our player on the menu/death or playing?
 let PLAYERS = []; // Stores all players that the server gives back
 let HIT_CHECKER = {}; // Stores whether each player has been hit before (makes sure that it doesn't hit a player more than once). {id: true/false, ...} format 
@@ -58,6 +59,8 @@ const player_list = document.getElementById("player_list");
 const death_list = document.getElementById("death_list");
 const server_text = document.getElementById("server_text");
 const death_menu = document.getElementById("death");
+const killing_player = document.getElementById("killing_player");
+const scoring = document.getElementById("scoring");
 const play_death_button = document.getElementById("play_death");
 const menu_death_button = document.getElementById("menu_death");
 
@@ -376,7 +379,16 @@ function handle_server_data({ data }) {
         update_killfeed(d);
         return;
     }
+    let scores = [];
+    for (let i = 0; i < PLAYERS.length; i++) {
+        scores.push(PLAYERS[i].score);
+    }
     PLAYERS = d; // updates local PLAYERS list with server's players list
+    for (let i = 0; i < PLAYERS.length; i++) {
+        if (scores[i] != PLAYERS[i.score]) {
+            console.log(PLAYERS[i].score, scores[i]);
+        }
+    }
     server_text.innerText = "Server (" + get_players_playing() + "/" + PLAYER_CAP + "):"
 }
 
@@ -385,6 +397,7 @@ function start() { // called once when Play is pressed
     PLAYING = true;
     SWING_DELAY_TIMER = 0;
     LAST_HIT_ID = ID;
+    SCORE = 0;
     enable_controls();
 }
 
@@ -417,6 +430,7 @@ function update() { // called every frame when page is loaded
                 y: MAINPLAYER.worldY,
                 playing: PLAYING,
                 last_hit_id: LAST_HIT_ID,
+                score: SCORE,
                 angle: ANGLE,
                 swinging: SWINGING == 1 || SWINGING == 2,
                 swing_angle: get_swing_angle()
@@ -425,7 +439,8 @@ function update() { // called every frame when page is loaded
         else {
             local_data = {
                 id: ID,
-                name: NAME
+                name: NAME,
+                score: SCORE
             };
         }
         send_local_data(local_data);
@@ -547,20 +562,19 @@ function update_killfeed(death_packet) { // updates the killfeed
         feed.innerHTML = victim.name + " committed suicide";
     } else {
         feed.innerHTML =  victim.name + " was eliminated by " + killer.name;
+        killer.score += 1;
     }
 }
 
 function update_player_list() { // updates the leaderboard
     clear_player_list();
-    var position = 1;
-    for (let i = 0; i < PLAYERS.length; i++) {
-        if (PLAYERS[i].playing) {
-            const listing = player_list.appendChild(document.createElement('div'));
-            listing.innerHTML = position + ": " + PLAYERS[i].name;
-            if (PLAYERS[i].id == ID) {
-                listing.style.fontWeight = "bold";
-            }
-            position++;
+    let playing_players = sort_playing_players();
+    for (let i = 0; i < playing_players.length; i++) {
+        const listing = player_list.appendChild(document.createElement('div'));
+        listing.innerHTML = (i+1) + ": " + playing_players[i].name + " -- " + playing_players[i].score;
+        console.log(playing_players[i].score);
+        if (playing_players[i].id == ID) {
+            listing.style.fontWeight = "bold";
         }
     }
 }
@@ -573,6 +587,25 @@ function clear_player_list() { // clears the leaderboard
     for (let i = 0; i < children.length; i++) {
         children[i].remove();
     }
+}
+
+function sort_playing_players() {
+    let playing_players = [];
+    for (let i = 0; i < PLAYERS.length; i++) {
+        if (PLAYERS[i].playing) {
+            playing_players.push(PLAYERS[i]);
+        }
+    }
+    for (let j = 0; j < playing_players.length; j++) {
+        for (let i = 0; i < playing_players.length; i++) {
+            if ((i != (playing_players.length-1)) && (playing_players[i+1].score > playing_players[i].score)) {
+                let temp = playing_players[i];
+                playing_players[i] = playing_players[i+1];
+                playing_players[i+1] = temp;
+            }
+        }
+    }
+    return playing_players;
 }
 
 function stop_movement() {
@@ -656,6 +689,16 @@ function kill_main_player() { // kills main player and sends death packet to ser
     send_local_data(data);
 
     disable_controls();
+    
+    let killer = PLAYERS.find(player => player.id == LAST_HIT_ID);
+    const murderer = killing_player.appendChild(document.createElement('div'));
+    const scored = scoring.appendChild(document.createElement('div'));
+    if (LAST_HIT_ID == ID) {
+        murderer.innerHTML = killer.name + " (that's you!)";
+    } else {
+        murderer.innerHTML = killer.name;
+    }
+    scored.innerHTML = "SCORE: " + SCORE;
 
     LASTX = MAINPLAYER.worldX;
     LASTY = MAINPLAYER.worldY;
