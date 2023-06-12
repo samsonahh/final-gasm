@@ -379,16 +379,7 @@ function handle_server_data({ data }) {
         update_killfeed(d);
         return;
     }
-    let scores = [];
-    for (let i = 0; i < PLAYERS.length; i++) {
-        scores.push(PLAYERS[i].score);
-    }
     PLAYERS = d; // updates local PLAYERS list with server's players list
-    for (let i = 0; i < PLAYERS.length; i++) {
-        if (scores[i] != PLAYERS[i.score]) {
-            console.log(PLAYERS[i].score, scores[i]);
-        }
-    }
     server_text.innerText = "Server (" + get_players_playing() + "/" + PLAYER_CAP + "):"
 }
 
@@ -556,13 +547,14 @@ function show_server_connected_msg(is_connected) {
 function update_killfeed(death_packet) { // updates the killfeed
     let killer = PLAYERS.find(player => player.id == death_packet.death.killer);
     let victim = PLAYERS.find(player => player.id == death_packet.death.victim);
-    console.log("killer", killer, "victim", victim);
     const feed = death_list.appendChild(document.createElement('div'));
     if (death_packet.death.killer == death_packet.death.victim) {
         feed.innerHTML = victim.name + " committed suicide";
     } else {
         feed.innerHTML =  victim.name + " was eliminated by " + killer.name;
-        killer.score += 1;
+    }
+    if (ID == killer.id) {
+        SCORE += 1;
     }
 }
 
@@ -572,7 +564,6 @@ function update_player_list() { // updates the leaderboard
     for (let i = 0; i < playing_players.length; i++) {
         const listing = player_list.appendChild(document.createElement('div'));
         listing.innerHTML = (i+1) + ": " + playing_players[i].name + " -- " + playing_players[i].score;
-        console.log(playing_players[i].score);
         if (playing_players[i].id == ID) {
             listing.style.fontWeight = "bold";
         }
