@@ -18,6 +18,11 @@ p05: Super Smack bros
 ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
 
+MatthewY -- 2023-6-02 13:02
+--------------------------------------------------------------
+- Added abstract to the design doc
+- Added program components to the design doc
+
 ALL -- 2023-6-05 8:29
 --------------------------------------------------------------
 - DD Feedback Summary:
@@ -48,8 +53,10 @@ SamsonW -- 2023-6-06 9:25
 VivianG -- 2023-6-06 12:00
 --------------------------------------------------------------
 
-MatthewY -- 2023-6-07 12:00
+MatthewY -- 2023-6-07 13:10
 --------------------------------------------------------------
+- Added accleration-based physics engine for player movement and knockback
+  - NOTE: physics engine currently does not normalize player speed for diagonal movement
 
 SamsonW -- 2023-6-07 18:32
 --------------------------------------------------------------
@@ -59,3 +66,7 @@ SamsonW -- 2023-6-07 18:32
 GitaeP -- 2023-6-08 19:56
 --------------------------------------------------------------
 - updated front-end work
+
+MatthewY -- 2023-6-12 13:06
+--------------------------------------------------------------
+- Normalized player speed for diagonal movement to be the same as perpendicular movement
