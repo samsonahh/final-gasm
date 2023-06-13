@@ -375,6 +375,7 @@ function send_local_data(data) { // send data to server
 }
 
 function setup_websocket(address) { // websockets connects to the specified address
+    clear_killfeed();
     error_msg.style.display = "none";
 
     if (websocket) { // if you are already connected then gracefully disconnect
@@ -577,17 +578,31 @@ function show_server_connected_msg(is_connected) {
     }
 }
 
+let feed_list = [];
 function update_killfeed(death_packet) { // updates the killfeed
+    if(feed_list.length > 6){
+        let removed = feed_list.shift();
+        removed.remove();
+    }
+
     let killer = PLAYERS.find(player => player.id == death_packet.death.killer);
     let victim = PLAYERS.find(player => player.id == death_packet.death.victim);
     const feed = death_list.appendChild(document.createElement('div'));
+    feed_list.push(feed);
+    feed.style.fontWeight = "bold";
+    feed.style.fontSize = "18px";
+
     if (death_packet.death.killer == death_packet.death.victim) {
-        feed.innerHTML = victim.name + " committed suicide";
+        feed.innerHTML = victim.name + " walked off";
     } else {
         feed.innerHTML =  victim.name + " was eliminated by " + killer.name;
     }
     if (ID == killer.id) {
         SCORE += 1;
+    }
+
+    for(let i = 0; i < feed_list.length; i++){
+        feed_list[i].style.color = `rgba(0,0,0,${(i+1)/(feed_list.length)})`;
     }
 }
 
@@ -607,6 +622,16 @@ function clear_player_list() { // clears the leaderboard
     children = []
     for (let i = 0; i < player_list.childNodes.length; i++) {
         children[i] = player_list.childNodes[i];
+    }
+    for (let i = 0; i < children.length; i++) {
+        children[i].remove();
+    }
+}
+
+function clear_killfeed(){ // clears the killfeed
+    children = []
+    for (let i = 0; i < death_list.childNodes.length; i++) {
+        children[i] = death_list.childNodes[i];
     }
     for (let i = 0; i < children.length; i++) {
         children[i].remove();
@@ -724,7 +749,7 @@ function kill_main_player() { // kills main player and sends death packet to ser
     } else {
         murderer.innerHTML = killer.name;
     }
-    scored.innerHTML = "SCORE: " + SCORE;
+    scored.innerHTML = "Score: " + SCORE;
 
     LASTX = MAINPLAYER.worldX;
     LASTY = MAINPLAYER.worldY;
