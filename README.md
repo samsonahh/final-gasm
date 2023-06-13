@@ -1,6 +1,6 @@
 # Smack.io by GASM
 SoftDev  
-P05 -- Smack.io 
+P05 -- Smack.io  
 Started: 2023-05-30  
 Completed: 2023-06-12
 
