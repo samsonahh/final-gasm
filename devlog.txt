@@ -5,7 +5,7 @@ Samson Wu
 Matthew Yee
 pd 7
 ---------------------
-p05: Super Smack bros
+p05: Smack.io
 
  ______   ______   __   __   __       ______   _______     
 /_____/\ /_____/\ /_/\ /_/\ /_/\     /_____/\ /______/\    
@@ -74,3 +74,10 @@ MatthewY -- 2023-6-12 13:06
 VivianG -- 2023-6-12 13:35
 --------------------------------------------------------------
 - Implemented scoring
+
+SamsonW -- 2023-6-12 22:32
+--------------------------------------------------------------
+- Added final desgin doc
+- Fading elimation feed
+- Appearance fixes
+- Revised README
