@@ -1,4 +1,4 @@
-# Super Smack Bros by GASM
+# Smack.io by GASM
 SoftDev  
 P05 -- Super Smack Bros  
 Started: 2023-05-30  
