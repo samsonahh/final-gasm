@@ -534,9 +534,6 @@ function draw_background() {
         var sX = 0 - LASTX + ctx.canvas.width / 2;
         var sY = 0 - LASTY + ctx.canvas.height / 2;
     }
-    ctx.lineWidth = 7.5;
-    draw_rect(sX, sY, WORLDWIDTH, WORLDHEIGHT, "black");
-    ctx.lineWidth = 1;
 
     for (let i = 0; i < WORLDWIDTH; i += 50) {
         for (let j = 0; j < WORLDHEIGHT; j += 50) {
@@ -544,6 +541,11 @@ function draw_background() {
             draw_line(sX, j + sY, sX + WORLDWIDTH, j + sY, "gray");
         }
     }
+    
+    ctx.lineWidth = 7.5;
+    draw_rect(sX, sY, WORLDWIDTH, WORLDHEIGHT, "black");
+    ctx.lineWidth = 1;
+
 }
 
 function draw_sword_and_hand(x, y, angle, swing_angle){
