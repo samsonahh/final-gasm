@@ -28,10 +28,10 @@ var LASTY = WORLDHEIGHT / 2; // Camera will leave off at this y position when pl
 var MOUSEX; // will store mouse pos on the screen
 var MOUSEY;
 
+
 //MOBILE
 var GOTOX; // x pos to move towards
 var GOTOY; // y pos to move towards
-let MOVING; // did the player reach pressed spot?
 
 var websocket; // Our websocket for server connection (can be changed for different server)
 
@@ -63,6 +63,7 @@ const killing_player = document.getElementById("killing_player");
 const scoring = document.getElementById("scoring");
 const play_death_button = document.getElementById("play_death");
 const menu_death_button = document.getElementById("menu_death");
+const joy_div = document.getElementById("joy_div");
 
 setup_websocket("wss://smack.io.samsonahh.me:8001/"); // default server to connect to upon loading page
 
@@ -240,18 +241,6 @@ class MainPlayer extends Player { // specialized player class for the local play
         //Check current player speed (for debugging purposes)
         //let m = Math.sqrt(this.velocity_x * this.velocity_x + this.velocity_y * this.velocity_y);
         //console.log(m);
-        
-
-        if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && MOVING){ // for mobile
-            if(GOTOX - this.worldX > 0.5 && this.velocity_x < MAX_SPEED) accleration_x = 0.3;
-            if(GOTOX - this.worldX < -0.5 && this.velocity_x > -MAX_SPEED) accleration_x = -0.3;
-            if(GOTOY - this.worldY > 0.5 && this.velocity_y < MAX_SPEED) accleration_y = 0.3;
-            if(GOTOY - this.worldY < -0.5 && this.velocity_y > -MAX_SPEED) accleration_y = -0.3;
-            let dist = distance(GOTOX, GOTOY, this.worldX, this.worldY);
-            if(dist < 1){
-                MOVING = false;
-            }
-        }
 
         //add acceleration to velocity
         this.velocity_y += accleration_y;
@@ -354,7 +343,6 @@ class MainPlayer extends Player { // specialized player class for the local play
         if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)){ // for mobile
             GOTOX = e.clientX - MAINPLAYER.screenX + MAINPLAYER.worldX;
             GOTOY = e.clientY - MAINPLAYER.screenY + MAINPLAYER.worldY;
-            MOVING = true;
         }
         if(SWING_DELAY_TIMER > SWING_DELAY && SWINGING == 0){ // if you are off swing cooldown and not already swinging
             SWINGING = 1;
@@ -482,10 +470,60 @@ setInterval(update, INTERVAL); // creates 60 FPS by updating loop every INTERVAL
 
 
 
+if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)){ // for mobile
+    var joy_stick = new JoyStick('joy_div', {internalFillColor: "#000000", externalStrokeColor: "#000000"}, function(stickData)
+        {
+            if(PLAYING){
+                var dir = stickData.cardinalDirection;
+                if(dir == "C"){
+                    stop_movement();
+                }
+                if(dir == "N"){
+                    MAINPLAYER.up = true;
+                    MAINPLAYER.down = false;
+                }
+                if(dir == "S"){
+                    MAINPLAYER.up = false;
+                    MAINPLAYER.down = true;
+                }
+                if(dir == "W"){
+                    MAINPLAYER.left = true;
+                    MAINPLAYER.right = false;
+                }
+                if(dir == "E"){
+                    MAINPLAYER.left = false;
+                    MAINPLAYER.right = true;
+                }
+                if(dir == "NW"){
+                    MAINPLAYER.up = true;
+                    MAINPLAYER.down = false;
+                    MAINPLAYER.left = true;
+                    MAINPLAYER.right = false;
+                }
+                if(dir == "SW"){
+                    MAINPLAYER.up = false;
+                    MAINPLAYER.down = true;
+                    MAINPLAYER.left = true;
+                    MAINPLAYER.right = false;
+                }
+                if(dir == "NE"){
+                    MAINPLAYER.up = true;
+                    MAINPLAYER.down = false;
+                    MAINPLAYER.left = false;
+                    MAINPLAYER.right = true;
+                }
+                if(dir == "SE"){
+                    MAINPLAYER.up = false;
+                    MAINPLAYER.down = true;
+                    MAINPLAYER.left = false;
+                    MAINPLAYER.right = true;
+                }
+            }
+        }
+    );
+};
 
-
-
-
+joy_div.style.display = "none";
 
 
 function draw_line(x0, y0, x1, y1, color) {
@@ -685,6 +723,7 @@ function get_players_playing() { // return number of players playing
 }
 
 function enable_controls() {
+    joy_div.style.display = "inline-block";
     window.addEventListener("keydown", check_keys_down);
     window.addEventListener("keyup", check_keys_up);
     window.addEventListener("click", MAINPLAYER.start_swing);
@@ -692,6 +731,7 @@ function enable_controls() {
 }
 
 function disable_controls() {
+    joy_div.style.display = "none";
     window.removeEventListener("keydown", check_keys_down);
     window.removeEventListener("keyup", check_keys_up);
     window.removeEventListener("click", MAINPLAYER.start_swing);
