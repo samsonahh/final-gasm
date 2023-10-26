@@ -340,10 +340,6 @@ class MainPlayer extends Player { // specialized player class for the local play
     }
 
     start_swing(e){
-        if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)){ // for mobile
-            GOTOX = e.clientX - MAINPLAYER.screenX + MAINPLAYER.worldX;
-            GOTOY = e.clientY - MAINPLAYER.screenY + MAINPLAYER.worldY;
-        }
         if(SWING_DELAY_TIMER > SWING_DELAY && SWINGING == 0){ // if you are off swing cooldown and not already swinging
             SWINGING = 1;
             SWING_TIMER = 0;
@@ -471,9 +467,16 @@ setInterval(update, INTERVAL); // creates 60 FPS by updating loop every INTERVAL
 
 
 if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)){ // for mobile
+    
+
     var joy_stick = new JoyStick('joy_div', {internalFillColor: "#000000", externalStrokeColor: "#000000"}, function(stickData)
         {
             if(PLAYING){
+                if(stickData.x != 0 && stickData.y != 0){
+                    MOUSEX =  -(-stickData.x) + MAINPLAYER.screenX;
+                    MOUSEY = -stickData.y + MAINPLAYER.screenY;
+                    // console.log(stickData.x, stickData.y, MOUSEX, MOUSEY);
+                }
                 var dir = stickData.cardinalDirection;
                 if(dir == "C"){
                     stop_movement();
