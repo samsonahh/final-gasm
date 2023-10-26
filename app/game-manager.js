@@ -1,9 +1,9 @@
 const FPS = 60; // Set fixed FPS (ppl with 144 hz monitors would move faster vs ppl on 60 hz monitors)
 const INTERVAL = 1000 / FPS; // Rate at which canvas is updated in ms
 
-const WORLDWIDTH = 750; // How wide our map is
-const WORLDHEIGHT = 750; // How tall our map is
-const PLAYER_CAP = 5;
+const WORLDWIDTH = 1000; // How wide our map is
+const WORLDHEIGHT = 1000; // How tall our map is
+const PLAYER_CAP = 30;
 
 let MAINPLAYER; // Will store our MainPlayer class. ONLY refers to the local player, not others.
 let NAME; // Name of our main player
@@ -64,7 +64,7 @@ const scoring = document.getElementById("scoring");
 const play_death_button = document.getElementById("play_death");
 const menu_death_button = document.getElementById("menu_death");
 
-setup_websocket("ws://samsonahh.me:8001/"); // default server to connect to upon loading page
+setup_websocket("wss://smack.io.samsonahh.me:8001/"); // default server to connect to upon loading page
 
 play_button.addEventListener("click", (e) => { // handles when player clicks play on menu
     if (websocket.readyState == WebSocket.OPEN) { // attempts to join if connected to server
@@ -120,7 +120,7 @@ server_dropdown.addEventListener("change", (e) => { // handles when dropdown is 
         setup_websocket("ws://localhost:8001/");
     }
     if (server_dropdown.value == "droplet") { //connects to our droplet server
-        setup_websocket("ws://samsonahh.me:8001/");
+        setup_websocket("wss://smack.io.samsonahh.me:8001/");
     }
 });
 
