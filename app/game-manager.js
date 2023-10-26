@@ -464,38 +464,83 @@ setInterval(update, INTERVAL); // creates 60 FPS by updating loop every INTERVAL
 
 
 
-
-
 if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)){ // for mobile
     
 
     var joy_stick = new JoyStick('joy_div', {internalFillColor: "#000000", externalStrokeColor: "#000000"}, function(stickData)
         {
             if(PLAYING){
+                MAINPLAYER.start_swing(0);
+                var angle_between = Math.atan2(stickData.y, stickData.x) * (180/Math.PI);
+                if(stickData.y < 0){
+                    angle_between = angle_between + 360;
+                }
+
+                var dir = "";
+                if(angle_between > 0 && angle_between < 45/2){
+                    dir = "E";
+                }
+                if(angle_between > 45/2 && angle_between < 90 - 45/2){
+                    dir = "NE";
+                }
+                if(angle_between > 90 - 45/2 && angle_between < 90 + 45/2){
+                    dir = "N";
+                }
+                if(angle_between > 90 + 45/2 && angle_between < 180 - 45/2){
+                    dir = "NW";
+                }
+                if(angle_between > 180 - 45/2 && angle_between < 180 + 45/2){
+                    dir = "W";
+                }
+                if(angle_between > 180 + 45/2 && angle_between < 270 - 45/2){
+                    dir = "SW";
+                }
+                if(angle_between > 270 - 45/2 && angle_between < 270 + 45/2){
+                    dir = "S";
+                }
+                if(angle_between > 270 + 45/2 && angle_between < 360 - 45/2){
+                    dir = "SE";
+                }
+                if(angle_between > 360 - 45/2 && angle_between < 360){
+                    dir = "E";
+                }
+                if(Math.abs(stickData.x) < 5 && Math.abs(stickData.y) < 5){
+                    dir = "C";
+                }
+                console.log(dir, angle_between);
+
                 if(stickData.x != 0 && stickData.y != 0){
                     MOUSEX =  -(-stickData.x) + MAINPLAYER.screenX;
                     MOUSEY = -stickData.y + MAINPLAYER.screenY;
                     // console.log(stickData.x, stickData.y, MOUSEX, MOUSEY);
                 }
-                var dir = stickData.cardinalDirection;
+
                 if(dir == "C"){
                     stop_movement();
                 }
                 if(dir == "N"){
                     MAINPLAYER.up = true;
                     MAINPLAYER.down = false;
+                    MAINPLAYER.left = false;
+                    MAINPLAYER.right = false;
                 }
                 if(dir == "S"){
                     MAINPLAYER.up = false;
                     MAINPLAYER.down = true;
+                    MAINPLAYER.left = false;
+                    MAINPLAYER.right = false;
                 }
                 if(dir == "W"){
                     MAINPLAYER.left = true;
                     MAINPLAYER.right = false;
+                    MAINPLAYER.up = false;
+                    MAINPLAYER.down = false;
                 }
                 if(dir == "E"){
                     MAINPLAYER.left = false;
                     MAINPLAYER.right = true;
+                    MAINPLAYER.up = false;
+                    MAINPLAYER.down = false;
                 }
                 if(dir == "NW"){
                     MAINPLAYER.up = true;
@@ -842,8 +887,10 @@ function handle_server_disconnect() {
 }
 
 function get_mouse_position(e){
-    MOUSEX = e.offsetX;
-    MOUSEY = e.offsetY;
+    if(!(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent))){
+        MOUSEX = e.offsetX;
+        MOUSEY = e.offsetY;
+    }
 }
 
 function get_swing_angle(){ // returns the swing angle used for animation
