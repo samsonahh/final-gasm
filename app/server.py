@@ -1,6 +1,17 @@
 import asyncio
 import websockets
 import json
+import logging
+import ssl
+from datetime import datetime
+import pytz
+
+# setup the ssl websocket
+logging.basicConfig()
+ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+ssl_cert = "/home/samsonahh/servers/smack.io/app/fullchain.pem"
+ssl_key = "/home/samsonahh/servers/smack.io/app/privkey.pem"
+ssl_context.load_cert_chain(ssl_cert, keyfile=ssl_key)
 
 PLAYERS = []
 CLIENTS = set()
@@ -11,7 +22,7 @@ async def handler(websocket): # all connection is handled here
         "id": str(websocket.id)
     }
     PLAYERS.append(id_packet) # add the newly connected player to our player list
-    print(websocket.id, "connected")
+    print(return_current_date_and_time(), websocket.id, "connected")
     await websocket.send(json.dumps(id_packet)) # let the new player know what their unique id is
 
     while True: # while the player is connected
@@ -20,7 +31,7 @@ async def handler(websocket): # all connection is handled here
             data = json.loads(message) # turn the string into a dictionary
 
             if data == {} or (type(data) is not dict): # if the client never received their id
-                print(websocket.id, "connected with an error")
+                print(return_current_date_and_time(), websocket.id, "connected with an error")
                 remove_player(id_packet['id']) 
                 CLIENTS.remove(websocket)
                 break # closes the connection with the client
@@ -31,7 +42,10 @@ async def handler(websocket): # all connection is handled here
                 continue
 
             if 'death' in data.keys(): # if client sends a death packet
-                print(data['death']['killer'], "killed", data['death']['victim'])
+                if(data['death']['killer'] == data['death']['victim']):
+                    print(return_current_date_and_time(), data['death']['killer'], "killed themselves")
+                else:
+                    print(return_current_date_and_time(), data['death']['killer'], "killed", data['death']['victim'])
                 broadcast(json.dumps(data))
                 continue
 
@@ -41,7 +55,7 @@ async def handler(websocket): # all connection is handled here
                 continue
             
             # if not valid packet then kick player (budget anticheat)
-            print("Kicked", id_packet['id'], "for invalid packet")
+            print(return_current_date_and_time(), "Kicked", id_packet['id'], "for invalid packet")
             remove_player(id_packet['id'])
             CLIENTS.remove(websocket)
             break
@@ -49,7 +63,7 @@ async def handler(websocket): # all connection is handled here
 
         except websockets.exceptions.ConnectionClosed: # if client disconnects or communication fails with client
             remove_player(id_packet['id'])
-            print(websocket.id, "disconnected")
+            print(return_current_date_and_time(), websocket.id, "disconnected")
             CLIENTS.remove(websocket)
             break # closes the connection with the client
 
@@ -64,7 +78,7 @@ def broadcast(message):
         asyncio.create_task(send(websocket, message))
 
 async def main(): # initializes the server (starts once when executing this file)
-    async with websockets.serve(handler, "0.0.0.0", 8001): # "0.0.0.0" refers to the machine the file is running on and 8001 is the port
+    async with websockets.serve(handler, "0.0.0.0", 8001, ssl=ssl_context): # "0.0.0.0" refers to the machine the file is running on and 8001 is the port
         await asyncio.Future()
 
 def update_players(data):
@@ -79,6 +93,11 @@ def remove_player(id):
             PLAYERS.pop(i)
             break
 
+def return_current_date_and_time():
+    now = datetime.now(tz = pytz.timezone("US/Eastern"))
+    dt_string = now.strftime("%m/%d/%Y %H:%M:%S -")
+    return dt_string
+
 if __name__ == "__main__":
-    print("Server started: Waiting for connections")
+    print(return_current_date_and_time(), "Server started: Waiting for connections")
     asyncio.run(main())

@@ -1,9 +1,12 @@
 const FPS = 60; // Set fixed FPS (ppl with 144 hz monitors would move faster vs ppl on 60 hz monitors)
 const INTERVAL = 1000 / FPS; // Rate at which canvas is updated in ms
+let DELTA_TIME = 0;
+let ms_prev = window.performance.now();
+let FRAMES = 0;
 
 const WORLDWIDTH = 1000; // How wide our map is
 const WORLDHEIGHT = 1000; // How tall our map is
-const PLAYER_CAP = 30;
+const PLAYER_CAP = 50;
 
 let MAINPLAYER; // Will store our MainPlayer class. ONLY refers to the local player, not others.
 let NAME; // Name of our main player
@@ -27,7 +30,6 @@ var LASTY = WORLDHEIGHT / 2; // Camera will leave off at this y position when pl
 
 var MOUSEX; // will store mouse pos on the screen
 var MOUSEY;
-
 
 //MOBILE
 var GOTOX; // x pos to move towards
@@ -65,7 +67,10 @@ const play_death_button = document.getElementById("play_death");
 const menu_death_button = document.getElementById("menu_death");
 const joy_div = document.getElementById("joy_div");
 
-setup_websocket("wss://smack.io.samsonahh.me:8001/"); // default server to connect to upon loading page
+for(let i = 0; i < 5; i++){
+    setup_websocket("wss://smack.io.samsonahh.games:8001/"); // default server to connect to upon loading page
+}
+update();
 
 play_button.addEventListener("click", (e) => { // handles when player clicks play on menu
     if (websocket.readyState == WebSocket.OPEN) { // attempts to join if connected to server
@@ -109,6 +114,10 @@ play_death_button.addEventListener("click", (e) => {
             start();
         }
     }
+    else{
+        death_menu.style.display = "none";
+        menu.style.display = "inline-block";
+    }
 })
 
 menu_death_button.addEventListener("click", (e) => { // handles when player clicks menu on death menu
@@ -121,7 +130,7 @@ server_dropdown.addEventListener("change", (e) => { // handles when dropdown is 
         setup_websocket("ws://localhost:8001/");
     }
     if (server_dropdown.value == "droplet") { //connects to our droplet server
-        setup_websocket("wss://smack.io.samsonahh.me:8001/");
+        setup_websocket("wss://smack.io.samsonahh.games:8001/");
     }
 });
 
@@ -411,6 +420,18 @@ function start() { // called once when Play is pressed
 }
 
 function update() { // called every frame when page is loaded
+    window.requestAnimationFrame(update);
+    
+    const ms_now = window.performance.now();
+    const ms_passed = ms_now - ms_prev;
+
+    if(ms_passed < INTERVAL) return;
+
+    const excess_time = ms_passed % INTERVAL;
+    ms_prev = ms_now - excess_time;
+
+    FRAMES++;
+
     draw_background();
     update_player_list(); // updates the leaderboard
 
@@ -460,9 +481,12 @@ function update() { // called every frame when page is loaded
         show_server_connected_msg(false);
     }
 }
-setInterval(update, INTERVAL); // creates 60 FPS by updating loop every INTERVAL = 1000/FPS = 13.333... milliseconds
 
-
+// fps counter
+// setInterval(()=>{
+//     console.log(FRAMES);
+//     FRAMES = 0;
+// }, 1000);
 
 if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)){ // for mobile
     
